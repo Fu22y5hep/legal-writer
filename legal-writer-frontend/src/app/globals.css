@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 47.4% 11.2%;
+  }
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  @apply min-h-[200px] p-4;
+}
+
+.ProseMirror:focus {
+  @apply outline-none;
+}
+
+.ProseMirror > * + * {
+  @apply mt-4;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-4;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-semibold;
+}
+
+.ProseMirror blockquote {
+  @apply pl-4 border-l-4 border-gray-300 italic;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-400;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
