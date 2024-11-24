@@ -45,15 +45,16 @@ Thumbs.db
 **/coverage/
 
 # Tailwind CSS
-**/tailwind.config.js
-**/postcss.config.js
+/tailwind.config.js
+/postcss.config.js
 
 # Static Exports
 **/out/
 
-# Package Lock Files (Optional)
-package-lock.json
-yarn.lock
+# Ignore lock files only in the root directory
+/package-lock.json
+/yarn.lock
+
 
 # Lint and Formatter
 **/.eslintcache
