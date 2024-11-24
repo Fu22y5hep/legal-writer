@@ -10,9 +10,19 @@ import MenuBar from '@/components/editor/EditorMenuBar';
 import { useState } from 'react';
 import { use } from 'react';
 
+const formatDate = (date: Date) => {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'UTC'
+  });
+};
+
 export default function ProjectPage({ params }: { params: { id: string } }) {
-  const projectId = use(Promise.resolve(params.id));
+  const id = use(params);
   const [activeTab, setActiveTab] = useState('editor');
+  const [lastEdited] = useState(formatDate(new Date())); // Initialize with current date
 
   const editor = useEditor({
     extensions: [
@@ -50,8 +60,8 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Project Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Project {projectId}</h1>
-          <p className="mt-1 text-sm text-gray-500">Last edited: {new Date().toLocaleDateString()}</p>
+          <h1 className="text-2xl font-bold text-gray-900">Project {id.id}</h1>
+          <p className="mt-1 text-sm text-gray-500">Last edited: {lastEdited}</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">

@@ -19,12 +19,12 @@
 }
 
 .ProseMirror > * + * {
-  @apply mt-4;
+  margin-top: 0.75em;
 }
 
 .ProseMirror ul,
 .ProseMirror ol {
-  @apply pl-4;
+  padding: 0 1rem;
 }
 
 .ProseMirror h1 {
@@ -32,17 +32,21 @@
 }
 
 .ProseMirror h2 {
-  @apply text-xl font-semibold;
+  @apply text-xl font-bold;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-bold;
+}
+
+.ProseMirror code {
+  @apply bg-gray-100 px-1 rounded;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-100 p-4 rounded;
 }
 
 .ProseMirror blockquote {
-  @apply pl-4 border-l-4 border-gray-300 italic;
-}
-
-.ProseMirror p.is-editor-empty:first-child::before {
-  @apply text-gray-400;
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
+  @apply border-l-4 border-gray-300 pl-4 italic;
 }
