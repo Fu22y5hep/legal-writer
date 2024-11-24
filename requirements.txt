@@ -1,0 +1,51 @@
+# Django Web Framework
+Django==4.2.5
+
+# PostgreSQL Database Adapter
+psycopg2-binary==2.9.7
+
+# Django REST Framework for API development
+djangorestframework==3.14.0
+
+# Environment Variable Management
+django-environ==0.10.0
+
+# Cross-Origin Resource Sharing
+django-cors-headers==3.14.0
+
+# Debugging Tools
+django-debug-toolbar==3.8.1
+
+# Gunicorn WSGI HTTP Server
+gunicorn==20.1.0
+
+# Static Files Management
+whitenoise==6.5.0
+
+# Authentication (Optional)
+django-allauth==0.55.0
+
+# Asynchronous Task Processing (Optional)
+celery==5.3.1
+django-celery-beat==2.5.0
+
+# AI Integration (e.g., OpenAI API)
+openai==0.27.8
+requests==2.31.0
+
+# Testing Tools
+pytest==7.4.2
+pytest-django==4.5.2
+coverage==7.3.1
+
+# Linting and Code Quality
+flake8==6.1.0
+black==23.9.1
+isort==5.12.0
+
+# Security Packages
+django-axes==6.0.1
+
+# Additional Utilities
+djangorestframework-simplejwt==5.2.2
+drf-yasg==1.21.6  # For API documentation

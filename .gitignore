@@ -1,0 +1,123 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE Directories
+.vscode/
+.idea/
+*.iml
+
+# MacOS System Files
+.DS_Store
+
+# Windows System Files
+Thumbs.db
+
+# Node.js / Next.js (Frontend)
+
+# Dependencies
+**/node_modules/
+
+# Build Outputs
+**/.next/
+**/out/
+**/build/
+**/dist/
+
+# Cache
+**/.cache/
+**/.eslintcache
+**/coverage/
+
+# Tailwind CSS
+**/tailwind.config.js
+**/postcss.config.js
+
+# Static Exports
+**/out/
+
+# Package Lock Files (Optional)
+package-lock.json
+yarn.lock
+
+# Lint and Formatter
+**/.eslintcache
+**/.prettiercache
+
+# Python / Django (Backend)
+
+# Byte-Compiled / Optimized / DLL Files
+**/__pycache__/
+**/*.py[cod]
+**/*.so
+
+# Virtual Environment
+**/venv/
+**/env/
+
+# Django Stuff
+**/db.sqlite3
+**/db.sqlite3-journal
+**/*.sqlite3
+**/media/
+**/staticfiles/
+**/static/
+
+# Migrations (Optional)
+# Uncomment if you don't want to track migrations
+# **/migrations/
+
+# Environment Variables
+**/.env
+
+# Logs
+**/logs/
+**/*.log
+
+# Coverage Reports
+**/htmlcov/
+**/.coverage
+**/coverage.xml
+**/nosetests.xml
+**/coverage/
+
+# Test and Cache Files
+**/.pytest_cache/
+**/.mypy_cache/
+**/.tox/
+
+# Jupyter Notebook Checkpoints
+**/.ipynb_checkpoints
+
+# Security
+**/secrets.json
+**/config/settings_local.py
+
+# Other
+
+# Backup Files
+*.bak
+*.swp
+*.swo
+
+# Parcel Bundler Cache
+.cache/
+
+# Temporary Files
+tmp/
+temp/
