@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -33,7 +35,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ projectId }) => {
       Document,
       Paragraph,
       Text,
-      Heading,
+      Heading.configure({
+        levels: [1, 2, 3],
+      }),
       BulletList,
       OrderedList,
       ListItem,
@@ -183,4 +187,4 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ projectId }) => {
   );
 };
 
-export default DocumentEditor;
+export { DocumentEditor };

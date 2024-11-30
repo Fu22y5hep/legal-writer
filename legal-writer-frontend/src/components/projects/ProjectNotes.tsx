@@ -16,7 +16,7 @@ interface ProjectNotesProps {
   projectId: number;
 }
 
-export const ProjectNotes: React.FC<ProjectNotesProps> = ({ projectId }) => {
+const ProjectNotes: React.FC<ProjectNotesProps> = ({ projectId }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -127,4 +127,6 @@ export const ProjectNotes: React.FC<ProjectNotesProps> = ({ projectId }) => {
       </div>
     </div>
   );
-}
+};
+
+export { ProjectNotes };
