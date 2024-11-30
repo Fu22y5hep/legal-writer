@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from .models import Project, Document, Note, Resource
 from .serializers import ProjectSerializer, DocumentSerializer, NoteSerializer, ResourceSerializer
@@ -74,3 +74,28 @@ class ResourceViewSet(viewsets.ModelViewSet):
             'extraction_error': resource.extraction_error or None,
             'last_extracted': resource.last_extracted
         })
+
+@api_view(['GET', 'POST'])
+@permission_classes([permissions.IsAuthenticated])
+def project_document(request, project_id):
+    try:
+        project = Project.objects.get(id=project_id, owner=request.user)
+    except Project.DoesNotExist:
+        return Response({'error': 'Project not found'}, status=404)
+
+    # Get or create the document
+    document, created = Document.objects.get_or_create(project=project)
+
+    if request.method == 'GET':
+        serializer = DocumentSerializer(document)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        data = request.data
+        if isinstance(data, str):
+            data = {'content': data}
+        serializer = DocumentSerializer(document, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)

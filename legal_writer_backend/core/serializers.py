@@ -24,7 +24,7 @@ class NoteSerializer(serializers.ModelSerializer):
 class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
-        fields = ['id', 'title', 'content', 'created_at', 'updated_at', 'project']
+        fields = ['id', 'content', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 class ProjectSerializer(serializers.ModelSerializer):

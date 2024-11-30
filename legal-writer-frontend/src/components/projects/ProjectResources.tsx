@@ -23,7 +23,7 @@ interface ProjectResourcesProps {
   projectId: number;
 }
 
-export default function ProjectResources({ projectId }: ProjectResourcesProps) {
+export const ProjectResources: React.FC<ProjectResourcesProps> = ({ projectId }) => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);

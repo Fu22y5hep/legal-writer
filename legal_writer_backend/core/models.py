@@ -1,14 +1,16 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 # Create your models here.
 
 class Project(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
 
     def __str__(self):
         return self.title
@@ -17,14 +19,13 @@ class Project(models.Model):
         ordering = ['-created_at']
 
 class Document(models.Model):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
-    title = models.CharField(max_length=200)
-    content = models.TextField()
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='document')
+    content = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.title
+        return f"Document for {self.project.title}"
 
     class Meta:
         ordering = ['-created_at']
@@ -36,7 +37,7 @@ class Note(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Note for {self.project.title} - {self.created_at}"
+        return f"Note for {self.project.title} - {self.created_at.strftime('%Y-%m-%d')}"
 
     class Meta:
         ordering = ['-created_at']
@@ -56,8 +57,8 @@ class Resource(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
     file_size = models.PositiveIntegerField(help_text='File size in bytes')
-    content_extracted = models.TextField(blank=True, help_text='Extracted text content from the file')
-    extraction_error = models.TextField(blank=True, help_text='Any errors encountered during text extraction')
+    content_extracted = models.TextField(blank=True, null=True, help_text='Extracted text content from the file')
+    extraction_error = models.TextField(blank=True, null=True, help_text='Any errors encountered during text extraction')
     last_extracted = models.DateTimeField(null=True, blank=True, help_text='When the content was last extracted')
 
     def __str__(self):

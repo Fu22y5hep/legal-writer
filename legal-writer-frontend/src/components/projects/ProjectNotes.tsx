@@ -16,7 +16,7 @@ interface ProjectNotesProps {
   projectId: number;
 }
 
-export default function ProjectNotes({ projectId }: ProjectNotesProps) {
+export const ProjectNotes: React.FC<ProjectNotesProps> = ({ projectId }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);

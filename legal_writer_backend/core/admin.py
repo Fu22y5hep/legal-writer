@@ -6,27 +6,25 @@ from .models import Project, Document, Note, Resource
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('title', 'owner', 'created_at', 'updated_at')
-    list_filter = ('owner', 'created_at')
     search_fields = ('title', 'description')
-    ordering = ('-created_at',)
+    list_filter = ('created_at', 'updated_at', 'owner')
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'project', 'created_at', 'updated_at')
-    list_filter = ('project', 'created_at')
-    search_fields = ('title', 'content')
-    ordering = ('-created_at',)
+    list_display = ('project', 'created_at', 'updated_at')
+    list_filter = ('created_at', 'updated_at')
+    raw_id_fields = ('project',)
 
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
     list_display = ('project', 'created_at', 'updated_at')
-    list_filter = ('project', 'created_at')
+    list_filter = ('created_at', 'updated_at')
     search_fields = ('content',)
-    ordering = ('-created_at',)
+    raw_id_fields = ('project',)
 
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
-    list_display = ('title', 'project', 'file_type', 'uploaded_at')
-    list_filter = ('project', 'file_type', 'uploaded_at')
-    search_fields = ('title', 'description')
-    ordering = ('-uploaded_at',)
+    list_display = ('file', 'project', 'file_type', 'uploaded_at')
+    list_filter = ('uploaded_at', 'file_type')
+    search_fields = ('file',)
+    raw_id_fields = ('project',)
