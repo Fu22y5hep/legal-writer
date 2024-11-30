@@ -11,15 +11,29 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
   const { requiresAuth = true, skipContentType = false, ...fetchConfig } = config;
   const url = `${API_BASE_URL}${endpoint}`;
 
+  console.log(`Making API request to: ${url}`, {
+    method: fetchConfig.method || 'GET',
+    requiresAuth,
+    skipContentType
+  });
+
   if (requiresAuth) {
     let accessToken = getAccessToken();
+    console.log('Current access token:', accessToken ? 'present' : 'missing');
 
     if (accessToken && isTokenExpired(accessToken)) {
-      accessToken = await refreshAccessToken();
+      console.log('Access token expired, attempting refresh');
+      try {
+        accessToken = await refreshAccessToken();
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        throw new Error('Authentication failed - please log in again');
+      }
     }
 
     if (!accessToken) {
-      throw new Error('No access token available');
+      console.error('No access token available');
+      throw new Error('Authentication required - please log in');
     }
 
     fetchConfig.headers = {
@@ -36,6 +50,12 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
   }
 
   try {
+    console.log('Sending request with config:', {
+      method: fetchConfig.method,
+      headers: fetchConfig.headers,
+      bodyLength: fetchConfig.body ? JSON.stringify(fetchConfig.body).length : 0
+    });
+
     const response = await fetch(url, fetchConfig);
     
     if (!response.ok) {
@@ -49,22 +69,25 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
           errorData = await response.text();
         }
       } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
         errorData = 'Could not parse error response';
       }
       
-      console.error('API request failed:', {
-        endpoint,
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
-      
-      throw new Error(
+      const error = new Error(
         typeof errorData === 'object' ? 
           JSON.stringify(errorData) : 
           `HTTP error! status: ${response.status} - ${errorData}`
       );
+      
+      console.error('API request failed:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
+      throw error;
     }
     
     // For DELETE requests, return undefined as there's no content
@@ -72,20 +95,24 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
       return undefined;
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log(`API request to ${endpoint} successful:`, {
+      status: response.status,
+      dataKeys: Object.keys(data)
+    });
+    
+    return data;
   } catch (error) {
     console.error('API request failed with exception:', {
-      endpoint,
+      url,
       error,
       config: {
         method: fetchConfig.method,
         headers: fetchConfig.headers,
         body: fetchConfig.body instanceof FormData ? 
-          Object.fromEntries(fetchConfig.body.entries()) : 
+          '[FormData]' : 
           fetchConfig.body,
-      },
-      message: error.message,
-      stack: error.stack,
+      }
     });
     throw error;
   }

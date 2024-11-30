@@ -46,11 +46,14 @@ export const isTokenExpired = (token: string): boolean => {
 export const refreshAccessToken = async () => {
   const refreshToken = Cookies.get(REFRESH_TOKEN_COOKIE);
   if (!refreshToken) {
+    console.error('No refresh token found in cookies');
+    clearTokens();
     throw new Error('No refresh token available');
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/token/refresh/', {
+    console.log('Attempting to refresh access token...');
+    const response = await fetch('http://localhost:8000/api/auth/token/refresh/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,13 +62,28 @@ export const refreshAccessToken = async () => {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to refresh token');
+      const errorText = await response.text();
+      console.error('Token refresh failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      clearTokens();
+      throw new Error(`Failed to refresh token: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    if (!data.access) {
+      console.error('Invalid refresh response:', data);
+      clearTokens();
+      throw new Error('Invalid refresh token response');
+    }
+
+    console.log('Token refresh successful');
     localStorage.setItem('accessToken', data.access);
     return data.access;
   } catch (error) {
+    console.error('Token refresh error:', error);
     clearTokens();
     throw error;
   }
