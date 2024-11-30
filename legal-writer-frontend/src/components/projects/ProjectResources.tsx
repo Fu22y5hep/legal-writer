@@ -27,6 +27,7 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedResourceId, setExpandedResourceId] = useState<number | null>(null);
 
   // Fetch resources on component mount
   useEffect(() => {
@@ -44,44 +45,24 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
     fetchResources();
   }, [projectId]);
 
-  const handleUpload = async (files: File[]) => {
+  const handleUpload = async (fileOrFiles: File | File[]) => {
     setIsUploading(true);
     setError(null);
 
     try {
+      const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+      
       for (const file of files) {
-        // Create a shorter title while preserving the original name in description
-        const originalName = file.name;
-        const shortTitle = originalName
-          .split('[')[0]  // Take the part before any brackets
-          .trim()
-          .substring(0, 200);  // Increased to 200 chars since backend now supports up to 255
-
-        console.log('Uploading file:', {
-          originalName,
-          shortTitle,
-          size: file.size,
-          type: file.type
-        });
-
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('title', shortTitle);
         formData.append('project', projectId.toString());
+        formData.append('title', file.name.split('[')[0].trim().substring(0, 200));
+        formData.append('description', `Original filename: ${file.name}`);
         formData.append('file_type', getFileType(file.name));
-        formData.append('description', `Original filename: ${originalName}`); // Store full original name with a prefix
 
-        try {
-          const newResource = await api.uploadResource(formData);
-          console.log('Upload response:', newResource);
-          setResources(prev => [...prev, newResource]);
-        } catch (uploadError: any) {
-          console.error('Detailed upload error:', {
-            error: uploadError,
-            message: uploadError.message,
-            response: uploadError.response,
-          });
-          throw uploadError;
+        const updatedResources = await api.uploadResource(formData);
+        if (Array.isArray(updatedResources)) {
+          setResources(updatedResources);
         }
       }
     } catch (err: any) {
@@ -115,107 +96,90 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getResources = async () => {
-    try {
-      const data = await api.getResources(projectId);
-      setResources(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching resources:', err);
-      setError('Failed to load resources');
-    }
+  const toggleResource = (resourceId: number) => {
+    setExpandedResourceId(expandedResourceId === resourceId ? null : resourceId);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="border-b border-gray-200 pb-4">
-        <h2 className="text-lg font-medium text-gray-900">Project Resources</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Upload documents related to this project.
-        </p>
-      </div>
-
+    <div className="space-y-4">
       {error && (
         <div className="p-4 bg-red-50 text-red-700 rounded-md">
           {error}
         </div>
       )}
 
-      <FileUpload onUpload={handleUpload} />
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-medium">Resources</h2>
+        <FileUpload onUpload={handleUpload} />
+      </div>
 
       {isUploading && (
-        <div className="mt-4">
-          <div className="animate-pulse flex space-x-4">
-            <div className="flex-1 space-y-4 py-1">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-              </div>
-            </div>
-          </div>
+        <div className="animate-pulse p-4 border rounded-lg">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
         </div>
       )}
 
-      {resources.length > 0 ? (
-        <div className="mt-6">
-          <div className="divide-y divide-gray-200">
-            {resources.map((resource) => (
-              <div key={resource.id} className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <svg
-                      className="h-8 w-8 text-gray-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{resource.title}</p>
-                      <p className="text-sm text-gray-500">
-                        {formatFileSize(resource.file_size)} • {resource.file_type} •{' '}
-                        {new Date(resource.uploaded_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <a
+      <div className="space-y-2">
+        {resources.map((resource) => (
+          <div key={resource.id} className="border rounded-lg overflow-hidden">
+            <div 
+              onClick={() => toggleResource(resource.id)}
+              className="p-4 bg-white hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+            >
+              <div>
+                <h3 className="font-medium">{resource.title}</h3>
+                <p className="text-sm text-gray-500">
+                  {new Date(resource.uploaded_at).toLocaleDateString()}
+                </p>
+              </div>
+              <span className="text-sm text-gray-500">{resource.file_type}</span>
+            </div>
+
+            {expandedResourceId === resource.id && (
+              <div className="p-4 bg-gray-50 border-t">
+                <div className="flex justify-end mb-4">
+                  <a 
                     href={resource.file}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-900"
+                    className="text-sm text-blue-600 hover:text-blue-800"
                   >
-                    Download
+                    Download File
                   </a>
                 </div>
 
-                {/* Description */}
-                {resource.description && (
-                  <p className="text-sm text-gray-700 mt-2">{resource.description}</p>
-                )}
-
-                {/* Show extracted content for PDFs */}
                 {resource.file_type === 'PDF' && (
-                  <div className="mt-2">
-                    <ExtractedContent
-                      resourceId={resource.id}
-                      content={resource.content_extracted}
-                      error={resource.extraction_error}
-                      lastExtracted={resource.last_extracted}
-                      onExtractComplete={getResources}
-                    />
-                  </div>
+                  <ExtractedContent
+                    resourceId={resource.id}
+                    content={resource.content_extracted}
+                    error={resource.extraction_error}
+                    lastExtracted={resource.last_extracted}
+                    onExtractComplete={() => {
+                      const fetchResources = async () => {
+                        try {
+                          const data = await api.getResources(projectId);
+                          setResources(data);
+                          setError(null);
+                        } catch (err) {
+                          console.error('Error fetching resources:', err);
+                          setError('Failed to load resources');
+                        }
+                      };
+                      fetchResources();
+                    }}
+                  />
                 )}
               </div>
-            ))}
+            )}
           </div>
+        ))}
+      </div>
+
+      {resources.length === 0 && !isUploading && (
+        <div className="text-center py-12 text-gray-500">
+          No resources uploaded yet
         </div>
-      ) : (
-        <p className="text-center text-gray-500 mt-4">No resources uploaded yet</p>
       )}
     </div>
   );

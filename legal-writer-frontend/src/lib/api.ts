@@ -19,103 +19,41 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
 
   if (requiresAuth) {
     let accessToken = getAccessToken();
-    console.log('Current access token:', accessToken ? 'present' : 'missing');
-
-    if (accessToken && isTokenExpired(accessToken)) {
-      console.log('Access token expired, attempting refresh');
-      try {
-        accessToken = await refreshAccessToken();
-      } catch (error) {
-        console.error('Token refresh failed:', error);
-        throw new Error('Authentication failed - please log in again');
-      }
+    if (isTokenExpired(accessToken)) {
+      accessToken = await refreshAccessToken();
     }
-
-    if (!accessToken) {
-      console.error('No access token available');
-      throw new Error('Authentication required - please log in');
-    }
-
     fetchConfig.headers = {
       ...fetchConfig.headers,
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
     };
   }
 
-  if (!skipContentType) {
+  // Don't set Content-Type for FormData
+  if (!skipContentType && !(fetchConfig.body instanceof FormData)) {
     fetchConfig.headers = {
+      ...fetchConfig.headers,
       'Content-Type': 'application/json',
-      ...fetchConfig.headers,
     };
   }
 
-  try {
-    console.log('Sending request with config:', {
-      method: fetchConfig.method,
-      headers: fetchConfig.headers,
-      bodyLength: fetchConfig.body ? JSON.stringify(fetchConfig.body).length : 0
-    });
+  const response = await fetch(url, fetchConfig);
 
-    const response = await fetch(url, fetchConfig);
-    
-    if (!response.ok) {
-      const contentType = response.headers.get('content-type');
-      let errorData;
-      
-      try {
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json();
-        } else {
-          errorData = await response.text();
-        }
-      } catch (parseError) {
-        console.error('Error parsing error response:', parseError);
-        errorData = 'Could not parse error response';
-      }
-      
-      const error = new Error(
-        typeof errorData === 'object' ? 
-          JSON.stringify(errorData) : 
-          `HTTP error! status: ${response.status} - ${errorData}`
-      );
-      
-      console.error('API request failed:', {
-        url,
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      
-      throw error;
-    }
-    
-    // For DELETE requests, return undefined as there's no content
-    if (response.status === 204) {
-      return undefined;
-    }
-    
-    const data = await response.json();
-    console.log(`API request to ${endpoint} successful:`, {
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('API Error:', {
       status: response.status,
-      dataKeys: Object.keys(data)
+      statusText: response.statusText,
+      body: errorText,
     });
-    
-    return data;
-  } catch (error) {
-    console.error('API request failed with exception:', {
-      url,
-      error,
-      config: {
-        method: fetchConfig.method,
-        headers: fetchConfig.headers,
-        body: fetchConfig.body instanceof FormData ? 
-          '[FormData]' : 
-          fetchConfig.body,
-      }
-    });
-    throw error;
+    throw new Error(errorText);
   }
+
+  // Check if the response has content before trying to parse it
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  return response;
 }
 
 export const api = {
@@ -181,11 +119,18 @@ export const api = {
   },
 
   uploadResource: async (formData: FormData) => {
-    return await fetchWithAuth('/resources/', {
+    const response = await fetchWithAuth('/resources/', {
       method: 'POST',
       body: formData,
-      skipContentType: true,
     });
+    
+    // After successful upload, fetch and return the updated resources list
+    const projectId = formData.get('project');
+    if (projectId) {
+      const resources = await api.getResources(Number(projectId));
+      return resources;
+    }
+    return [];
   },
 
   extractResourceContent: async (resourceId: number) => {
