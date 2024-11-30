@@ -36,8 +36,22 @@ class ResourceViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        return Resource.objects.filter(project__owner=self.request.user)
+        project_id = self.request.query_params.get('project')
+        queryset = Resource.objects.filter(project__owner=self.request.user)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset
 
     def perform_create(self, serializer):
-        # You might want to add file size calculation here
-        serializer.save()
+        # Get the project and verify ownership
+        project_id = self.request.data.get('project')
+        project = Project.objects.get(id=project_id, owner=self.request.user)
+        
+        # Get the file size from the uploaded file
+        file = self.request.FILES.get('file')
+        if file:
+            file_size = file.size
+        else:
+            file_size = 0
+
+        serializer.save(project=project, file_size=file_size)

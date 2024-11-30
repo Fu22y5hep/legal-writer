@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FileUpload from '../upload/FileUpload';
+import { api } from '@/lib/api';
 
 interface Resource {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  uploadedAt: Date;
-  url: string;
+  id: number;
+  title: string;
+  file: string;
+  file_type: string;
+  file_size: number;
+  uploaded_at: string;
+  description: string;
+  project: number;
 }
 
 interface ProjectResourcesProps {
@@ -19,32 +22,84 @@ interface ProjectResourcesProps {
 export default function ProjectResources({ projectId }: ProjectResourcesProps) {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch resources on component mount
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const data = await api.getResources(projectId);
+        setResources(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching resources:', err);
+        setError('Failed to load resources');
+      }
+    };
+
+    fetchResources();
+  }, [projectId]);
 
   const handleUpload = async (files: File[]) => {
     setIsUploading(true);
+    setError(null);
+
     try {
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('projectId', projectId.toString());
+        // Create a shorter title while preserving the original name in description
+        const originalName = file.name;
+        const shortTitle = originalName
+          .split('[')[0]  // Take the part before any brackets
+          .trim()
+          .substring(0, 200);  // Increased to 200 chars since backend now supports up to 255
 
-        const response = await fetch('/api/projects/resources/upload', {
-          method: 'POST',
-          body: formData,
+        console.log('Uploading file:', {
+          originalName,
+          shortTitle,
+          size: file.size,
+          type: file.type
         });
 
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', shortTitle);
+        formData.append('project', projectId.toString());
+        formData.append('file_type', getFileType(file.name));
+        formData.append('description', `Original filename: ${originalName}`); // Store full original name with a prefix
 
-        const newResource = await response.json();
-        setResources(prev => [...prev, newResource]);
+        try {
+          const newResource = await api.uploadResource(formData);
+          console.log('Upload response:', newResource);
+          setResources(prev => [...prev, newResource]);
+        } catch (uploadError: any) {
+          console.error('Detailed upload error:', {
+            error: uploadError,
+            message: uploadError.message,
+            response: uploadError.response,
+          });
+          throw uploadError;
+        }
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      // You might want to show an error message to the user here
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      setError(err.message || 'Failed to upload file(s). Please try again.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const getFileType = (filename: string): string => {
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    switch (ext) {
+      case 'pdf':
+        return 'PDF';
+      case 'doc':
+      case 'docx':
+        return 'DOC';
+      case 'txt':
+        return 'TXT';
+      default:
+        return 'OTHER';
     }
   };
 
@@ -61,9 +116,15 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
       <div className="border-b border-gray-200 pb-4">
         <h2 className="text-lg font-medium text-gray-900">Project Resources</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Upload PDF documents related to this project.
+          Upload documents related to this project.
         </p>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
 
       <FileUpload onUpload={handleUpload} />
 
@@ -81,13 +142,13 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
         </div>
       )}
 
-      {resources.length > 0 && (
+      {resources.length > 0 ? (
         <div className="mt-6">
           <ul className="divide-y divide-gray-200">
             {resources.map((resource) => (
               <li key={resource.id} className="py-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center">
+                  <div className="flex items-center space-x-4">
                     <svg
                       className="h-8 w-8 text-gray-400"
                       fill="currentColor"
@@ -99,18 +160,19 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">{resource.name}</p>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{resource.title}</p>
                       <p className="text-sm text-gray-500">
-                        {formatFileSize(resource.size)} • Uploaded{' '}
-                        {new Date(resource.uploadedAt).toLocaleDateString()}
+                        {formatFileSize(resource.file_size)} • {resource.file_type} •{' '}
+                        {new Date(resource.uploaded_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <a
-                    href={resource.url}
-                    download
-                    className="ml-6 text-sm font-medium text-blue-600 hover:text-blue-500"
+                    href={resource.file}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 hover:text-indigo-900"
                   >
                     Download
                   </a>
@@ -119,6 +181,8 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
             ))}
           </ul>
         </div>
+      ) : (
+        <p className="text-center text-gray-500 mt-4">No resources uploaded yet</p>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Project {
   id: number;
@@ -20,25 +21,26 @@ export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
+  const pathname = usePathname();
+
+  const fetchProjects = async () => {
+    try {
+      const data = await api.getProjects();
+      setProjects(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load projects');
+      console.error('Error fetching projects:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const data = await api.getProjects();
-        setProjects(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load projects');
-        console.error('Error fetching projects:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     if (isAuthenticated) {
       fetchProjects();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, pathname]); 
 
   const filteredProjects = projects.filter((project) => 
     project.title.toLowerCase().includes(searchQuery.toLowerCase())

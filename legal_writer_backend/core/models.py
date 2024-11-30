@@ -50,8 +50,8 @@ class Resource(models.Model):
     ]
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='resources')
-    title = models.CharField(max_length=200)
-    file = models.FileField(upload_to='resources/')
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='resources/', max_length=255)
     file_type = models.CharField(max_length=10, choices=RESOURCE_TYPES)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)

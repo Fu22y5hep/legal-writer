@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { api } from '@/lib/api';
 
 interface Note {
   id: number;
   content: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
+  project: number;
 }
 
 interface ProjectNotesProps {
@@ -18,18 +20,18 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch notes
   useEffect(() => {
     const fetchNotes = async () => {
       try {
-        const response = await fetch(`/api/projects/${projectId}/notes`);
-        if (response.ok) {
-          const data = await response.json();
-          setNotes(data);
-        }
+        const data = await api.getNotes(projectId);
+        setNotes(data);
+        setError(null);
       } catch (error) {
         console.error('Error fetching notes:', error);
+        setError('Failed to load notes');
       }
     };
 
@@ -42,22 +44,18 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
     if (!newNote.trim()) return;
 
     setIsLoading(true);
+    setError(null);
+    
     try {
-      const response = await fetch(`/api/projects/${projectId}/notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content: newNote }),
+      const addedNote = await api.createNote({
+        content: newNote.trim(),
+        project: projectId
       });
-
-      if (response.ok) {
-        const addedNote = await response.json();
-        setNotes(prev => [addedNote, ...prev]);
-        setNewNote('');
-      }
+      setNotes(prev => [addedNote, ...prev]);
+      setNewNote('');
     } catch (error) {
       console.error('Error adding note:', error);
+      setError('Failed to add note');
     } finally {
       setIsLoading(false);
     }
@@ -66,20 +64,24 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
   // Delete note
   const handleDeleteNote = async (noteId: number) => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/notes/${noteId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setNotes(prev => prev.filter(note => note.id !== noteId));
-      }
+      await api.deleteNote(noteId);
+      setNotes(prev => prev.filter(note => note.id !== noteId));
+      setError(null);
     } catch (error) {
       console.error('Error deleting note:', error);
+      setError('Failed to delete note');
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Error message */}
+      {error && (
+        <div className="p-4 bg-red-50 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
+
       {/* Add Note Form */}
       <form onSubmit={handleAddNote} className="space-y-4">
         <textarea
@@ -103,33 +105,25 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
         {notes.map((note) => (
           <div
             key={note.id}
-            className="bg-white p-4 rounded-lg border shadow-sm space-y-2"
+            className="p-4 bg-white rounded-lg shadow-sm border border-gray-200"
           >
             <div className="flex justify-between items-start">
-              <p className="whitespace-pre-wrap">{note.content}</p>
+              <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
               <button
                 onClick={() => handleDeleteNote(note.id)}
-                className="text-red-500 hover:text-red-700"
+                className="ml-4 text-red-600 hover:text-red-800"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                Delete
               </button>
             </div>
-            <p className="text-sm text-gray-500">
-              {format(new Date(note.createdAt), 'MMM d, yyyy h:mm a')}
+            <p className="mt-2 text-sm text-gray-500">
+              {format(new Date(note.created_at), 'MMM d, yyyy h:mm a')}
             </p>
           </div>
         ))}
+        {notes.length === 0 && (
+          <p className="text-center text-gray-500">No notes yet</p>
+        )}
       </div>
     </div>
   );
