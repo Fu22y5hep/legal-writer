@@ -1,6 +1,5 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import {
   ChatBubbleLeftIcon,
   DocumentTextIcon,
@@ -10,12 +9,8 @@ import {
   LinkIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-
-interface FunctionPaneProps {
-  className?: string;
-}
+import type { TabType } from '@/app/projects/[id]/page';
 
 interface Project {
   id: number;
@@ -25,22 +20,18 @@ interface Project {
   updated_at: string;
 }
 
-const formatDate = (date: string) => {
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC'
-  }).format(new Date(date));
-};
+interface FunctionPaneProps {
+  className?: string;
+}
 
 export default function FunctionPane({ className = '' }: FunctionPaneProps) {
   const router = useRouter();
-  const { id } = useParams();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const params = useParams();
+  const id = params.id as string;
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') as TabType || 'editor';
   const [project, setProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -49,107 +40,120 @@ export default function FunctionPane({ className = '' }: FunctionPaneProps) {
         setProject(data);
       } catch (error) {
         console.error('Error fetching project:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchProject();
+    if (id) {
+      fetchProject();
+    }
   }, [id]);
 
-  const handleDuplicateProject = async () => {
-    try {
-      const duplicatedProject = await api.duplicateProject(Number(id));
-      router.push(`/projects/${duplicatedProject.id}`);
-    } catch (error) {
-      console.error('Error duplicating project:', error);
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
-  const handleDeleteProject = async () => {
-    if (!window.confirm('Are you sure you want to delete this project?')) return;
-    
-    try {
-      setIsDeleting(true);
-      await api.deleteProject(Number(id));
-      router.push('/projects');
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      setIsDeleting(false);
-    }
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  const handleTabChange = (tab: TabType) => {
+    router.push(`/projects/${id}?tab=${tab}`);
   };
 
   return (
-    <div className={`${className} p-4 space-y-6`}>
+    <div className={`w-64 h-full flex flex-col bg-white border-r border-gray-200 ${className}`}>
       {/* Project Header */}
-      <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-xl font-semibold text-gray-900">{project?.title}</h1>
+      <div className="px-4 py-3 border-b border-gray-200">
+        <h2 className="text-base font-semibold text-gray-900 truncate">{project?.title}</h2>
         {project?.description && (
-          <p className="mt-1 text-sm text-gray-600">{project.description}</p>
+          <p className="mt-1 text-xs text-gray-600 line-clamp-2">{project.description}</p>
         )}
         <p className="mt-1 text-xs text-gray-500">
           Last edited: {project ? formatDate(project.updated_at) : ''}
         </p>
       </div>
 
-      {/* Function Buttons */}
-      <div className="space-y-2">
+      {/* Navigation Buttons */}
+      <div className="flex-1 py-2">
         <button
-          onClick={() => router.push(`/projects/${id}`)}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+          onClick={() => handleTabChange('editor')}
+          className={`w-full flex items-center px-3 py-2 text-sm ${
+            currentTab === 'editor'
+              ? 'text-blue-600 bg-blue-50'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <DocumentTextIcon className="h-5 w-5 mr-3 text-gray-400" />
+          <DocumentTextIcon className="h-5 w-5 mr-3" />
           Editor
         </button>
-
         <button
-          onClick={() => router.push(`/projects/${id}/chat`)}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+          onClick={() => handleTabChange('chat')}
+          className={`w-full flex items-center px-3 py-2 text-sm ${
+            currentTab === 'chat'
+              ? 'text-blue-600 bg-blue-50'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <ChatBubbleLeftIcon className="h-5 w-5 mr-3 text-gray-400" />
+          <ChatBubbleLeftIcon className="h-5 w-5 mr-3" />
           Chat Assistant
         </button>
-
         <button
-          onClick={() => router.push(`/projects/${id}/notes`)}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+          onClick={() => handleTabChange('notes')}
+          className={`w-full flex items-center px-3 py-2 text-sm ${
+            currentTab === 'notes'
+              ? 'text-blue-600 bg-blue-50'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <PencilSquareIcon className="h-5 w-5 mr-3 text-gray-400" />
+          <PencilSquareIcon className="h-5 w-5 mr-3" />
           Notes
         </button>
-
         <button
-          onClick={() => router.push(`/projects/${id}/resources`)}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+          onClick={() => handleTabChange('resources')}
+          className={`w-full flex items-center px-3 py-2 text-sm ${
+            currentTab === 'resources'
+              ? 'text-blue-600 bg-blue-50'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
         >
-          <FolderIcon className="h-5 w-5 mr-3 text-gray-400" />
+          <FolderIcon className="h-5 w-5 mr-3" />
           Resources
         </button>
+      </div>
 
-        <div className="pt-4 border-t border-gray-200">
-          <button
-            onClick={handleDuplicateProject}
-            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-          >
-            <DocumentDuplicateIcon className="h-5 w-5 mr-3 text-gray-400" />
-            Duplicate Project
-          </button>
-
-          <button
-            onClick={() => {/* Copy project link */}}
-            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-          >
-            <LinkIcon className="h-5 w-5 mr-3 text-gray-400" />
-            Share Link
-          </button>
-
-          <button
-            onClick={handleDeleteProject}
-            disabled={isDeleting}
-            className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-          >
-            <TrashIcon className="h-5 w-5 mr-3 text-red-500" />
-            {isDeleting ? 'Deleting...' : 'Delete Project'}
-          </button>
-        </div>
+      {/* Project Actions */}
+      <div className="py-2 border-t border-gray-200">
+        <button
+          onClick={() => {/* TODO: Implement duplicate */}}
+          className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          <DocumentDuplicateIcon className="h-5 w-5 mr-3" />
+          Duplicate Project
+        </button>
+        <button
+          onClick={() => {/* TODO: Implement share */}}
+          className="w-full flex items-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          <LinkIcon className="h-5 w-5 mr-3" />
+          Share Link
+        </button>
+        <button
+          onClick={() => {/* TODO: Implement delete */}}
+          className="w-full flex items-center px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+        >
+          <TrashIcon className="h-5 w-5 mr-3" />
+          Delete Project
+        </button>
       </div>
     </div>
   );

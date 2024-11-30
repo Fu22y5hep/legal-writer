@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Document from '@tiptap/extension-document';
@@ -14,7 +14,7 @@ import ProjectResources from '@/components/projects/ProjectResources';
 import ProjectNotes from '@/components/projects/ProjectNotes';
 import { api } from '@/lib/api';
 
-type TabType = 'editor' | 'chat' | 'notes' | 'resources';
+export type TabType = 'editor' | 'chat' | 'notes' | 'resources';
 
 interface Project {
   id: number;
@@ -37,7 +37,10 @@ const formatDate = (date: string) => {
 
 export default function ProjectPage() {
   const params = useParams();
-  const [activeTab, setActiveTab] = useState<TabType>('editor');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get('tab') as TabType) || 'editor';
+  
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,12 +75,6 @@ export default function ProjectPage() {
     content: '<p>Start writing your document...</p>',
   });
 
-  const tabStyle = (tab: TabType) => `px-4 py-2 font-medium rounded-lg ${
-    activeTab === tab
-      ? 'bg-blue-100 text-blue-700'
-      : 'text-gray-600 hover:bg-gray-100'
-  }`;
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -97,37 +94,9 @@ export default function ProjectPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <button
-            onClick={() => setActiveTab('editor')}
-            className={tabStyle('editor')}
-          >
-            Editor
-          </button>
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={tabStyle('chat')}
-          >
-            Chat
-          </button>
-          <button
-            onClick={() => setActiveTab('notes')}
-            className={tabStyle('notes')}
-          >
-            Notes
-          </button>
-          <button
-            onClick={() => setActiveTab('resources')}
-            className={tabStyle('resources')}
-          >
-            Resources
-          </button>
-        </div>
-
         {/* Main Content Area */}
         <div className="bg-white rounded-lg shadow p-6">
-          {activeTab === 'editor' && (
+          {tab === 'editor' && (
             <div>
               <div className="mb-4 flex justify-between items-center">
                 <h2 className="text-lg font-medium text-gray-900">Document Editor</h2>
@@ -153,21 +122,21 @@ export default function ProjectPage() {
             </div>
           )}
           
-          {activeTab === 'chat' && (
+          {tab === 'chat' && (
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">AI Chat Assistant</h2>
               <ChatAssistant />
             </div>
           )}
           
-          {activeTab === 'notes' && (
+          {tab === 'notes' && (
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">Project Notes</h2>
               <ProjectNotes projectId={Number(params.id)} />
             </div>
           )}
           
-          {activeTab === 'resources' && (
+          {tab === 'resources' && (
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">Project Resources</h2>
               <ProjectResources projectId={Number(params.id)} />
