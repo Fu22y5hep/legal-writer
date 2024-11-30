@@ -10,8 +10,10 @@ class UserSerializer(serializers.ModelSerializer):
 class ResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resource
-        fields = ['id', 'title', 'file', 'file_type', 'uploaded_at', 'description', 'file_size', 'content_extracted']
-        read_only_fields = ['file_size', 'uploaded_at']
+        fields = ['id', 'title', 'file', 'file_type', 'uploaded_at', 'description', 
+                 'file_size', 'content_extracted', 'extraction_error', 'last_extracted']
+        read_only_fields = ['file_size', 'uploaded_at', 'content_extracted', 
+                          'extraction_error', 'last_extracted']
 
 class NoteSerializer(serializers.ModelSerializer):
     class Meta:

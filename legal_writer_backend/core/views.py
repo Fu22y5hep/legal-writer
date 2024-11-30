@@ -1,5 +1,7 @@
 from django.shortcuts import render
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, response
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import Project, Document, Note, Resource
 from .serializers import ProjectSerializer, DocumentSerializer, NoteSerializer, ResourceSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -54,4 +56,21 @@ class ResourceViewSet(viewsets.ModelViewSet):
         else:
             file_size = 0
 
-        serializer.save(project=project, file_size=file_size)
+        # Save the resource
+        resource = serializer.save(project=project, file_size=file_size)
+        
+        # Extract content if it's a PDF
+        if resource.file_type == 'PDF':
+            resource.extract_content()
+
+    @action(detail=True, methods=['post'])
+    def extract(self, request, pk=None):
+        """Endpoint to manually trigger content extraction"""
+        resource = self.get_object()
+        resource.extract_content()
+        return Response({
+            'status': 'success',
+            'content_extracted': bool(resource.content_extracted),
+            'extraction_error': resource.extraction_error or None,
+            'last_extracted': resource.last_extracted
+        })

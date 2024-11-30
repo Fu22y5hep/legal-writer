@@ -3,15 +3,19 @@
 import { useState, useEffect } from 'react';
 import FileUpload from '../upload/FileUpload';
 import { api } from '@/lib/api';
+import { ExtractedContent } from '../resources/ExtractedContent';
 
 interface Resource {
   id: number;
   title: string;
   file: string;
   file_type: string;
+  description: string;
   file_size: number;
   uploaded_at: string;
-  description: string;
+  content_extracted: string;
+  extraction_error: string;
+  last_extracted: string;
   project: number;
 }
 
@@ -111,6 +115,17 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getResources = async () => {
+    try {
+      const data = await api.getResources(projectId);
+      setResources(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching resources:', err);
+      setError('Failed to load resources');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="border-b border-gray-200 pb-4">
@@ -144,9 +159,9 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
 
       {resources.length > 0 ? (
         <div className="mt-6">
-          <ul className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200">
             {resources.map((resource) => (
-              <li key={resource.id} className="py-4">
+              <div key={resource.id} className="py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <svg
@@ -177,9 +192,27 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                     Download
                   </a>
                 </div>
-              </li>
+
+                {/* Description */}
+                {resource.description && (
+                  <p className="text-sm text-gray-700 mt-2">{resource.description}</p>
+                )}
+
+                {/* Show extracted content for PDFs */}
+                {resource.file_type === 'PDF' && (
+                  <div className="mt-2">
+                    <ExtractedContent
+                      resourceId={resource.id}
+                      content={resource.content_extracted}
+                      error={resource.extraction_error}
+                      lastExtracted={resource.last_extracted}
+                      onExtractComplete={getResources}
+                    />
+                  </div>
+                )}
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       ) : (
         <p className="text-center text-gray-500 mt-4">No resources uploaded yet</p>

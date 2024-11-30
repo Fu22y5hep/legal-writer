@@ -57,9 +57,39 @@ class Resource(models.Model):
     description = models.TextField(blank=True)
     file_size = models.PositiveIntegerField(help_text='File size in bytes')
     content_extracted = models.TextField(blank=True, help_text='Extracted text content from the file')
+    extraction_error = models.TextField(blank=True, help_text='Any errors encountered during text extraction')
+    last_extracted = models.DateTimeField(null=True, blank=True, help_text='When the content was last extracted')
 
     def __str__(self):
         return f"{self.title} ({self.file_type})"
+
+    def extract_content(self):
+        """Extract content from the uploaded file"""
+        from django.utils import timezone
+        from .utils import extract_text_from_pdf, get_file_type
+        import os
+
+        if not self.file:
+            return
+
+        try:
+            file_path = self.file.path
+            file_type = get_file_type(file_path)
+
+            if file_type.lower().startswith('application/pdf'):
+                extracted_text = extract_text_from_pdf(file_path)
+                self.content_extracted = extracted_text
+                self.extraction_error = ''
+            else:
+                self.extraction_error = f'Unsupported file type: {file_type}'
+                self.content_extracted = ''
+
+        except Exception as e:
+            self.extraction_error = str(e)
+            self.content_extracted = ''
+        
+        self.last_extracted = timezone.now()
+        self.save()
 
     class Meta:
         ordering = ['-uploaded_at']

@@ -157,7 +157,13 @@ export const api = {
     return await fetchWithAuth('/resources/', {
       method: 'POST',
       body: formData,
-      skipContentType: true, // Skip setting Content-Type for file uploads
+      skipContentType: true,
+    });
+  },
+
+  extractResourceContent: async (resourceId: number) => {
+    return await fetchWithAuth(`/resources/${resourceId}/extract/`, {
+      method: 'POST',
     });
   },
 
