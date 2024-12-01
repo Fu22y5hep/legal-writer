@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import FileUpload from '../upload/FileUpload';
 import { api } from '@/lib/api';
+import SummarizeButton from '@/components/resources/SummarizeButton';
 import { ExtractedContent } from '../resources/ExtractedContent';
-import { SummarizeButton } from '../resources/SummarizeButton';
 import { Summary } from '../resources/Summary';
 
 interface Resource {
@@ -60,7 +60,7 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('project', projectId.toString());
-        formData.append('title', file.name.split('[')[0].trim().substring(0, 200));
+        formData.append('title', file.name);
         formData.append('description', `Original filename: ${file.name}`);
         formData.append('file_type', getFileType(file.name));
 
@@ -105,6 +105,17 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
     setExpandedResourceId(expandedResourceId === resourceId ? null : resourceId);
   };
 
+  const handleDelete = async (resourceId: number) => {
+    try {
+      await api.deleteResource(resourceId);
+      const updatedResources = await api.getResources(projectId);
+      setResources(updatedResources);
+    } catch (error) {
+      console.error('Error deleting resource:', error);
+      setError('Failed to delete resource');
+    }
+  };
+
   return (
     <div className="space-y-4">
       {error && (
@@ -127,37 +138,53 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
 
       <div className="space-y-2">
         {resources.map((resource) => (
-          <div key={resource.id} className="border rounded-lg overflow-hidden">
+          <div
+            key={resource.id}
+            className="border rounded-lg overflow-hidden mb-4"
+          >
             <div 
               onClick={() => toggleResource(resource.id)}
-              className="p-4 bg-white hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+              className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 cursor-pointer"
             >
-              <div>
-                <h3 className="font-medium">{resource.title}</h3>
+              <div className="flex flex-col">
+                <div className="flex items-center space-x-4">
+                  <span className="font-medium">{resource.title}</span>
+                  <span className="text-sm text-gray-500">{resource.file_type}</span>
+                  {resource.file_type === 'PDF' && (
+                    <SummarizeButton 
+                      resourceId={resource.id} 
+                      projectId={projectId}
+                      resourceTitle={resource.title}
+                      onSummarized={() => {
+                        const fetchResources = async () => {
+                          try {
+                            const data = await api.getResources(projectId);
+                            setResources(data);
+                            setError(null);
+                          } catch (err) {
+                            console.error('Error fetching resources:', err);
+                            setError('Failed to load resources');
+                          }
+                        };
+                        fetchResources();
+                      }}
+                    />
+                  )}
+                </div>
                 <p className="text-sm text-gray-500">
-                  {new Date(resource.uploaded_at).toLocaleDateString()}
+                  Uploaded on {new Date(resource.uploaded_at).toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex items-center space-x-2">
-                {resource.file_type === 'PDF' && (
-                  <SummarizeButton 
-                    resourceId={resource.id}
-                    onSummarizeComplete={() => {
-                      const fetchResources = async () => {
-                        try {
-                          const data = await api.getResources(projectId);
-                          setResources(data);
-                          setError(null);
-                        } catch (err) {
-                          console.error('Error fetching resources:', err);
-                          setError('Failed to load resources');
-                        }
-                      };
-                      fetchResources();
-                    }}
-                  />
-                )}
-                <span className="text-sm text-gray-500">{resource.file_type}</span>
+              <div className="flex items-center space-x-4">
+                <button 
+                  className="text-sm text-red-600 hover:text-red-800"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(resource.id);
+                  }}
+                >
+                  Delete
+                </button>
               </div>
             </div>
 
@@ -176,10 +203,6 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
 
                 {resource.file_type === 'PDF' && (
                   <>
-                    <Summary 
-                      summary={resource.summary}
-                      lastSummarized={resource.last_summarized}
-                    />
                     <ExtractedContent
                       resourceId={resource.id}
                       content={resource.content_extracted}

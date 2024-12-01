@@ -11,49 +11,62 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
   const { requiresAuth = true, skipContentType = false, ...fetchConfig } = config;
   const url = `${API_BASE_URL}${endpoint}`;
 
-  console.log(`Making API request to: ${url}`, {
-    method: fetchConfig.method || 'GET',
-    requiresAuth,
-    skipContentType
-  });
-
-  if (requiresAuth) {
-    let accessToken = getAccessToken();
-    if (isTokenExpired(accessToken)) {
-      accessToken = await refreshAccessToken();
-    }
-    fetchConfig.headers = {
-      ...fetchConfig.headers,
-      Authorization: `Bearer ${accessToken}`,
-    };
-  }
-
-  // Don't set Content-Type for FormData
-  if (!skipContentType && !(fetchConfig.body instanceof FormData)) {
-    fetchConfig.headers = {
-      ...fetchConfig.headers,
-      'Content-Type': 'application/json',
-    };
-  }
-
-  const response = await fetch(url, fetchConfig);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('API Error:', {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorText,
+  try {
+    console.log(`Making API request to: ${url}`, {
+      method: fetchConfig.method || 'GET',
+      requiresAuth,
+      skipContentType
     });
-    throw new Error(errorText);
-  }
 
-  // Check if the response has content before trying to parse it
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
-    return response.json();
+    if (requiresAuth) {
+      let accessToken = getAccessToken();
+      if (isTokenExpired(accessToken)) {
+        accessToken = await refreshAccessToken();
+      }
+      fetchConfig.headers = {
+        ...fetchConfig.headers,
+        Authorization: `Bearer ${accessToken}`,
+      };
+    }
+
+    // Don't set Content-Type for FormData
+    if (!skipContentType && !(fetchConfig.body instanceof FormData)) {
+      fetchConfig.headers = {
+        ...fetchConfig.headers,
+        'Content-Type': 'application/json',
+      };
+    }
+
+    const response = await fetch(url, fetchConfig);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.url,
+        errorData
+      });
+      
+      throw new Error(
+        `API Error (${response.status}): ${errorData || response.statusText}`
+      );
+    }
+
+    // Check if the response has content before trying to parse it
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    return response;
+  } catch (error) {
+    console.error('API Request Failed:', {
+      url,
+      method: fetchConfig.method,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+    throw error;
   }
-  return response;
 }
 
 export const api = {
@@ -102,15 +115,36 @@ export const api = {
   },
 
   // Notes
-  getNotes: async (projectId: number) => {
-    return await fetchWithAuth(`/notes/?project=${projectId}`);
-  },
-
-  createNote: async (data: { content: string; project: number }) => {
-    return await fetchWithAuth('/notes/', {
+  createNote: async (data: { 
+    content: string; 
+    title: string; 
+    name_identifier: string;
+    project: number 
+  }) => {
+    console.log('Creating note with data:', data);
+    const response = await fetchWithAuth('/notes/', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    console.log('Note creation response:', response);
+    return response;
+  },
+
+  updateNote: async (noteId: number, data: {
+    content?: string;
+    title?: string;
+    name_identifier?: string;
+  }) => {
+    return await fetchWithAuth(`/notes/${noteId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  getNotes: async (projectId: number) => {
+    const response = await fetchWithAuth(`/notes/?project=${projectId}`);
+    console.log('Fetched notes:', response);
+    return response;
   },
 
   deleteNote: async (noteId: number) => {
@@ -139,9 +173,10 @@ export const api = {
   },
 
   summarizeResource: async (resourceId: number) => {
-    return await fetchWithAuth(`/resources/${resourceId}/summarize/`, {
+    const response = await fetchWithAuth(`/resources/${resourceId}/summarize/`, {
       method: 'POST',
     });
+    return response;
   },
 
   deleteResource: async (resourceId: number) => {

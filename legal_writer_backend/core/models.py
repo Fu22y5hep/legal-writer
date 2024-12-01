@@ -32,12 +32,14 @@ class Document(models.Model):
 
 class Note(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='notes')
+    title = models.CharField(max_length=255, blank=True)
+    name_identifier = models.CharField(max_length=255, blank=True)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Note for {self.project.title} - {self.created_at}"
+        return self.title if self.title else f"Note for {self.project.title} - {self.created_at}"
 
     class Meta:
         ordering = ['-created_at']

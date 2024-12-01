@@ -47,8 +47,14 @@ async def summarize_text(text: str) -> str:
         response = await openai.ChatCompletion.acreate(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a legal document summarizer. Create a clear, concise summary of the provided text, focusing on key points and important details."},
-                {"role": "user", "content": f"Please summarize the following text:\n\n{text}"}
+                {
+                    "role": "system", 
+                    "content": "You are a legal document summarizer. Create a clear, concise summary of the provided text in simple paragraph format. Do not use any special formatting, bullets, numbering, or markdown. Focus on the key points and important details, presenting them in a flowing narrative."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Please summarize the following text in a clear paragraph format:\n\n{text}"
+                }
             ],
             max_tokens=500,
             temperature=0.3,

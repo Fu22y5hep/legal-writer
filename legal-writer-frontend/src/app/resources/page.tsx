@@ -4,8 +4,17 @@ import React, { useState } from 'react';
 import ResourceUpload from '@/components/resources/ResourceUpload';
 import ResourceList from '@/components/resources/ResourceList';
 
+interface Resource {
+  id: number;
+  title: string;
+  file_type: string;
+  file_size: number;
+  uploaded_at: string;
+  description: string;
+}
+
 // Mock data for development
-const mockResources = [
+const mockResources: Resource[] = [
   {
     id: 1,
     title: 'Contract Template.docx',
@@ -25,7 +34,7 @@ const mockResources = [
 ];
 
 export default function ResourcesPage() {
-  const [resources, setResources] = useState(mockResources);
+  const [resources, setResources] = useState<Resource[]>(mockResources);
   const [isUploading, setIsUploading] = useState(false);
 
   const handleUpload = async (files: File[]) => {
@@ -46,6 +55,7 @@ export default function ResourcesPage() {
         file_type: file.name.split('.').pop()?.toUpperCase() || 'UNKNOWN',
         file_size: file.size,
         uploaded_at: new Date().toISOString(),
+        description: '', // Ensure description is always present
       }));
 
       setResources(prev => [...prev, ...newResources]);

@@ -23,7 +23,7 @@ class ResourceSerializer(serializers.ModelSerializer):
 class NoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Note
-        fields = ['id', 'content', 'created_at', 'updated_at', 'project']
+        fields = ['id', 'title', 'name_identifier', 'content', 'created_at', 'updated_at', 'project']
         read_only_fields = ['created_at', 'updated_at']
 
 class DocumentSerializer(serializers.ModelSerializer):
