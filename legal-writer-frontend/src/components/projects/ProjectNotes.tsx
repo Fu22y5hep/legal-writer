@@ -27,6 +27,7 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
   const [error, setError] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
   const [expandedNoteId, setExpandedNoteId] = useState<number | null>(null);
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
 
@@ -80,6 +81,7 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
   const handleStartEdit = (note: Note) => {
     setEditingNoteId(note.id);
     setEditTitle(note.title || note.name_identifier || '');
+    setEditContent(note.content || '');
   };
 
   // Save note edit
@@ -88,16 +90,23 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
       const updatedNote = await api.updateNote(noteId, {
         title: editTitle,
         name_identifier: editTitle,
+        content: editContent,
       });
       
       setNotes(prevNotes => 
         prevNotes.map(note => 
-          note.id === noteId ? { ...note, title: editTitle, name_identifier: editTitle } : note
+          note.id === noteId ? { 
+            ...note, 
+            title: editTitle, 
+            name_identifier: editTitle,
+            content: editContent 
+          } : note
         )
       );
       
       setEditingNoteId(null);
       setEditTitle('');
+      setEditContent('');
       toast.success('Note updated successfully');
     } catch (error) {
       console.error('Error updating note:', error);
@@ -109,6 +118,7 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
   const handleCancelEdit = () => {
     setEditingNoteId(null);
     setEditTitle('');
+    setEditContent('');
   };
 
   // Delete note
@@ -125,14 +135,14 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         <h2 className="text-lg font-medium text-gray-900">Notes</h2>
         <button
           onClick={() => setIsNewNoteModalOpen(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg className="-ml-0.5 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
           </svg>
           New Note
@@ -140,8 +150,8 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
       </div>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <p className="text-red-700">{error}</p>
+        <div className="bg-red-50 border-l-4 border-red-400 p-3">
+          <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
@@ -204,104 +214,118 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg divide-y">
+      <div className="bg-white shadow-sm rounded-md border border-gray-200 divide-y divide-gray-200">
         {notes.map(note => (
           <div key={note.id} className="group">
             <div 
-              className="p-4 hover:bg-gray-50 cursor-pointer"
-              onClick={() => setExpandedNoteId(expandedNoteId === note.id ? null : note.id)}
+              className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150 ease-in-out"
+              onClick={() => !editingNoteId && setExpandedNoteId(expandedNoteId === note.id ? null : note.id)}
             >
               <div className="flex items-center justify-between">
-                <div className="flex-grow">
+                <div className="flex-grow min-w-0">
                   {editingNoteId === note.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-                        placeholder="Enter note title"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSaveEdit(note.id);
-                        }}
-                        className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancelEdit();
-                        }}
-                        className="px-3 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 text-sm font-medium"
-                      >
-                        Cancel
-                      </button>
+                    <div className="space-y-3">
+                      <div>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="Enter note title"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div>
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          rows={6}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                          placeholder="Enter note content"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveEdit(note.id);
+                          }}
+                          className="px-2.5 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs font-medium"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelEdit();
+                          }}
+                          className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 text-xs font-medium"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex-grow">
-                        <h4 className="text-lg font-medium text-gray-900">
+                    <div className="flex items-center justify-between min-w-0">
+                      <div className="flex-grow truncate">
+                        <h4 className="text-sm font-medium text-gray-900 truncate">
                           {note.title || note.name_identifier || 'Untitled Note'}
                         </h4>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(note.created_at), 'PPP')}
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {format(new Date(note.created_at), 'MMM d, yyyy')}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleStartEdit(note);
                           }}
-                          className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-sm font-medium flex items-center gap-1"
+                          className="p-1 text-gray-400 hover:text-blue-600 rounded-md hover:bg-blue-50 transition-colors duration-150"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                           </svg>
-                          Edit
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteNote(note.id);
                           }}
-                          className="px-3 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100 text-sm font-medium flex items-center gap-1"
+                          className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors duration-150"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
-                          Delete
                         </button>
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="ml-4">
-                  <svg 
-                    className={`h-5 w-5 text-gray-400 transform transition-transform ${expandedNoteId === note.id ? 'rotate-180' : ''}`} 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 20 20" 
-                    fill="currentColor"
-                  >
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </div>
+                {!editingNoteId && (
+                  <div className="ml-4 flex-shrink-0">
+                    <svg 
+                      className={`h-4 w-4 text-gray-400 transform transition-transform duration-200 ${expandedNoteId === note.id ? 'rotate-180' : ''}`} 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
-            {expandedNoteId === note.id && (
-              <div className="px-4 pb-4 text-sm text-gray-900 whitespace-pre-wrap border-t border-gray-100">
+            {expandedNoteId === note.id && !editingNoteId && (
+              <div className="px-4 py-2 text-sm text-gray-600 bg-gray-50 border-t border-gray-100">
                 {note.content}
               </div>
             )}
           </div>
         ))}
         {notes.length === 0 && (
-          <div className="p-6 text-center text-gray-500">
+          <div className="px-4 py-3 text-sm text-center text-gray-500">
             No notes yet
           </div>
         )}

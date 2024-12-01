@@ -118,123 +118,99 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
 
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="p-4 bg-red-50 text-red-700 rounded-md">
-          {error}
-        </div>
-      )}
-
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-medium">Resources</h2>
+        <h2 className="text-lg font-medium text-gray-900">Resources</h2>
         <FileUpload onUpload={handleUpload} />
       </div>
 
-      {isUploading && (
-        <div className="animate-pulse p-4 border rounded-lg">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-3">
+          <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
-      <div className="space-y-2">
-        {resources.map((resource) => (
-          <div
-            key={resource.id}
-            className="border rounded-lg overflow-hidden mb-4"
-          >
-            <div 
-              onClick={() => toggleResource(resource.id)}
-              className="flex items-center justify-between p-4 bg-white hover:bg-gray-50 cursor-pointer"
-            >
-              <div className="flex flex-col">
-                <div className="flex items-center space-x-4">
-                  <span className="font-medium">{resource.title}</span>
-                  <span className="text-sm text-gray-500">{resource.file_type}</span>
+      <div className="bg-white shadow-sm rounded-md border border-gray-200 divide-y divide-gray-200">
+        {resources.map(resource => (
+          <div key={resource.id} className="group">
+            <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150 ease-in-out">
+              <div className="flex items-center justify-between">
+                <div className="flex-grow min-w-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <DocumentIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                          {resource.title}
+                        </h3>
+                        <div className="flex items-center gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleDelete(resource.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors duration-150"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-0.5 flex items-center text-xs text-gray-500">
+                        <span>{new Date(resource.uploaded_at).toLocaleDateString()}</span>
+                        <span className="mx-1.5">•</span>
+                        <span>{formatFileSize(resource.file_size)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {expandedResourceId === resource.id && (
+                <div className="p-4 bg-gray-50 border-t">
+                  <div className="flex justify-end mb-4">
+                    <a 
+                      href={resource.file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Download File
+                    </a>
+                  </div>
+
                   {resource.file_type === 'PDF' && (
-                    <SummarizeButton 
-                      resourceId={resource.id} 
-                      projectId={projectId}
-                      resourceTitle={resource.title}
-                      onSummarized={() => {
-                        const fetchResources = async () => {
-                          try {
-                            const data = await api.getResources(projectId);
-                            setResources(data);
-                            setError(null);
-                          } catch (err) {
-                            console.error('Error fetching resources:', err);
-                            setError('Failed to load resources');
-                          }
-                        };
-                        fetchResources();
-                      }}
-                    />
+                    <>
+                      <ExtractedContent
+                        resourceId={resource.id}
+                        content={resource.content_extracted}
+                        error={resource.extraction_error}
+                        lastExtracted={resource.last_extracted}
+                        onExtractComplete={() => {
+                          const fetchResources = async () => {
+                            try {
+                              const data = await api.getResources(projectId);
+                              setResources(data);
+                              setError(null);
+                            } catch (err) {
+                              console.error('Error fetching resources:', err);
+                              setError('Failed to load resources');
+                            }
+                          };
+                          fetchResources();
+                        }}
+                      />
+                    </>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">
-                  Uploaded on {new Date(resource.uploaded_at).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <button 
-                  className="text-sm text-red-600 hover:text-red-800"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(resource.id);
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
+              )}
             </div>
-
-            {expandedResourceId === resource.id && (
-              <div className="p-4 bg-gray-50 border-t">
-                <div className="flex justify-end mb-4">
-                  <a 
-                    href={resource.file}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Download File
-                  </a>
-                </div>
-
-                {resource.file_type === 'PDF' && (
-                  <>
-                    <ExtractedContent
-                      resourceId={resource.id}
-                      content={resource.content_extracted}
-                      error={resource.extraction_error}
-                      lastExtracted={resource.last_extracted}
-                      onExtractComplete={() => {
-                        const fetchResources = async () => {
-                          try {
-                            const data = await api.getResources(projectId);
-                            setResources(data);
-                            setError(null);
-                          } catch (err) {
-                            console.error('Error fetching resources:', err);
-                            setError('Failed to load resources');
-                          }
-                        };
-                        fetchResources();
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-            )}
           </div>
         ))}
+        {resources.length === 0 && (
+          <div className="px-4 py-3 text-sm text-center text-gray-500">
+            No resources yet
+          </div>
+        )}
       </div>
-
-      {resources.length === 0 && !isUploading && (
-        <div className="text-center py-12 text-gray-500">
-          No resources uploaded yet
-        </div>
-      )}
     </div>
   );
 }
