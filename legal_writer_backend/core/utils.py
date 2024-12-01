@@ -1,6 +1,12 @@
 import os
 from PyPDF2 import PdfReader
 import magic
+import openai
+from django.conf import settings
+from asgiref.sync import sync_to_async
+
+# Configure OpenAI with API key
+openai.api_key = settings.OPENAI_API_KEY
 
 def get_file_type(file_path):
     """Detect the file type using python-magic"""
@@ -31,3 +37,22 @@ def extract_text_from_pdf(file_path):
         return '\n\n'.join(text_content)
     except Exception as e:
         raise Exception(f"Error extracting text from PDF: {str(e)}")
+
+async def summarize_text(text: str) -> str:
+    """Generate a summary of the text using gpt-4o-mini model"""
+    if not text:
+        raise ValueError("No text provided for summarization")
+
+    try:
+        response = await openai.ChatCompletion.acreate(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a legal document summarizer. Create a clear, concise summary of the provided text, focusing on key points and important details."},
+                {"role": "user", "content": f"Please summarize the following text:\n\n{text}"}
+            ],
+            max_tokens=500,
+            temperature=0.3,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise Exception(f"Error generating summary: {str(e)}")

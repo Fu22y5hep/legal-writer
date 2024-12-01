@@ -1,4 +1,4 @@
-import { getAccessToken, isTokenExpired, refreshAccessToken } from './auth';
+import { getAccessToken, isTokenExpired, refreshAccessToken, setTokens } from './auth';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -59,11 +59,17 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
 export const api = {
   // Auth
   login: async (username: string, password: string) => {
-    return await fetchWithAuth('/token/', {
+    const response = await fetchWithAuth('/token/', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       requiresAuth: false,
     });
+    
+    if (response.access && response.refresh) {
+      setTokens(response.access, response.refresh);
+    }
+    
+    return response;
   },
 
   // Projects
@@ -119,22 +125,21 @@ export const api = {
   },
 
   uploadResource: async (formData: FormData) => {
-    const response = await fetchWithAuth('/resources/', {
+    return await fetchWithAuth('/resources/', {
       method: 'POST',
       body: formData,
+      skipContentType: true,  // Important: Skip content-type for FormData
     });
-    
-    // After successful upload, fetch and return the updated resources list
-    const projectId = formData.get('project');
-    if (projectId) {
-      const resources = await api.getResources(Number(projectId));
-      return resources;
-    }
-    return [];
   },
 
   extractResourceContent: async (resourceId: number) => {
     return await fetchWithAuth(`/resources/${resourceId}/extract/`, {
+      method: 'POST',
+    });
+  },
+
+  summarizeResource: async (resourceId: number) => {
+    return await fetchWithAuth(`/resources/${resourceId}/summarize/`, {
       method: 'POST',
     });
   },

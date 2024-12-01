@@ -2,9 +2,10 @@
 
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 
 interface FileUploadProps {
-  onUpload: (files: File[]) => void;
+  onUpload: (file: File) => Promise<void>;
   maxSize?: number; // in bytes
   className?: string;
 }
@@ -12,17 +13,28 @@ interface FileUploadProps {
 export default function FileUpload({ onUpload, maxSize = 10485760, className = '' }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    onUpload(acceptedFiles);
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    
+    try {
+      // Only handle the first file for now
+      await onUpload(acceptedFiles[0]);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
   }, [onUpload]);
 
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
+    maxFiles: 1,
+    multiple: false,
     accept: {
       'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
     },
     maxSize,
-    multiple: true,
   });
 
   return (
@@ -34,24 +46,11 @@ export default function FileUpload({ onUpload, maxSize = 10485760, className = '
     >
       <input {...getInputProps()} />
       <div className="space-y-4">
-        <svg
-          className={`mx-auto h-12 w-12 ${isDragActive ? 'text-blue-500' : 'text-gray-400'}`}
-          stroke="currentColor"
-          fill="none"
-          viewBox="0 0 48 48"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M24 14v20m-10-10h20"
-          />
-        </svg>
+        <CloudArrowUpIcon className={`mx-auto h-12 w-12 ${isDragActive ? 'text-blue-500' : 'text-gray-400'}`} />
         
         <div className="text-gray-600">
           <span className="font-medium text-blue-600">Click to upload</span> or drag and drop
-          <p className="text-sm mt-1">PDF files only (max {Math.round(maxSize / 1024 / 1024)}MB)</p>
+          <p className="text-sm mt-1">PDF, DOC, DOCX, TXT files only (max {Math.round(maxSize / 1024 / 1024)}MB)</p>
         </div>
       </div>
 

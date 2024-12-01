@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import FileUpload from '../upload/FileUpload';
 import { api } from '@/lib/api';
 import { ExtractedContent } from '../resources/ExtractedContent';
+import { SummarizeButton } from '../resources/SummarizeButton';
+import { Summary } from '../resources/Summary';
 
 interface Resource {
   id: number;
@@ -16,6 +18,8 @@ interface Resource {
   content_extracted: string;
   extraction_error: string;
   last_extracted: string;
+  summary: string | null;
+  last_summarized: string | null;
   project: number;
 }
 
@@ -60,11 +64,12 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
         formData.append('description', `Original filename: ${file.name}`);
         formData.append('file_type', getFileType(file.name));
 
-        const updatedResources = await api.uploadResource(formData);
-        if (Array.isArray(updatedResources)) {
-          setResources(updatedResources);
-        }
+        await api.uploadResource(formData);
       }
+      
+      // Fetch updated resources after all uploads are complete
+      const updatedResources = await api.getResources(projectId);
+      setResources(updatedResources);
     } catch (err: any) {
       console.error('Upload error:', err);
       setError(err.message || 'Failed to upload file(s). Please try again.');
@@ -133,7 +138,27 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                   {new Date(resource.uploaded_at).toLocaleDateString()}
                 </p>
               </div>
-              <span className="text-sm text-gray-500">{resource.file_type}</span>
+              <div className="flex items-center space-x-2">
+                {resource.file_type === 'PDF' && (
+                  <SummarizeButton 
+                    resourceId={resource.id}
+                    onSummarizeComplete={() => {
+                      const fetchResources = async () => {
+                        try {
+                          const data = await api.getResources(projectId);
+                          setResources(data);
+                          setError(null);
+                        } catch (err) {
+                          console.error('Error fetching resources:', err);
+                          setError('Failed to load resources');
+                        }
+                      };
+                      fetchResources();
+                    }}
+                  />
+                )}
+                <span className="text-sm text-gray-500">{resource.file_type}</span>
+              </div>
             </div>
 
             {expandedResourceId === resource.id && (
@@ -150,25 +175,31 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                 </div>
 
                 {resource.file_type === 'PDF' && (
-                  <ExtractedContent
-                    resourceId={resource.id}
-                    content={resource.content_extracted}
-                    error={resource.extraction_error}
-                    lastExtracted={resource.last_extracted}
-                    onExtractComplete={() => {
-                      const fetchResources = async () => {
-                        try {
-                          const data = await api.getResources(projectId);
-                          setResources(data);
-                          setError(null);
-                        } catch (err) {
-                          console.error('Error fetching resources:', err);
-                          setError('Failed to load resources');
-                        }
-                      };
-                      fetchResources();
-                    }}
-                  />
+                  <>
+                    <Summary 
+                      summary={resource.summary}
+                      lastSummarized={resource.last_summarized}
+                    />
+                    <ExtractedContent
+                      resourceId={resource.id}
+                      content={resource.content_extracted}
+                      error={resource.extraction_error}
+                      lastExtracted={resource.last_extracted}
+                      onExtractComplete={() => {
+                        const fetchResources = async () => {
+                          try {
+                            const data = await api.getResources(projectId);
+                            setResources(data);
+                            setError(null);
+                          } catch (err) {
+                            console.error('Error fetching resources:', err);
+                            setError('Failed to load resources');
+                          }
+                        };
+                        fetchResources();
+                      }}
+                    />
+                  </>
                 )}
               </div>
             )}

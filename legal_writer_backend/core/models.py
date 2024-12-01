@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from asgiref.sync import sync_to_async
 
 # Create your models here.
 
@@ -59,6 +60,9 @@ class Resource(models.Model):
     content_extracted = models.TextField(blank=True, help_text='Extracted text content from the file')
     extraction_error = models.TextField(blank=True, help_text='Any errors encountered during text extraction')
     last_extracted = models.DateTimeField(null=True, blank=True, help_text='When the content was last extracted')
+    summary = models.TextField(blank=True, help_text='AI-generated summary of the content')
+    summary_error = models.TextField(blank=True, help_text='Any errors encountered during summarization')
+    last_summarized = models.DateTimeField(null=True, blank=True, help_text='When the content was last summarized')
 
     def __str__(self):
         return f"{self.title} ({self.file_type})"
@@ -90,6 +94,30 @@ class Resource(models.Model):
         
         self.last_extracted = timezone.now()
         self.save()
+
+    async def summarize(self):
+        """Generate a summary of the extracted content"""
+        from django.utils import timezone
+        from .utils import summarize_text
+
+        if not self.content_extracted:
+            # Run extract_content synchronously since it's a blocking operation
+            self.extract_content()
+            if not self.content_extracted:
+                self.summary_error = "No content available for summarization"
+                await sync_to_async(self.save)()
+                return
+
+        try:
+            summary = await summarize_text(self.content_extracted)
+            self.summary = summary
+            self.summary_error = ''
+        except Exception as e:
+            self.summary_error = str(e)
+            self.summary = ''
+        
+        self.last_summarized = timezone.now()
+        await sync_to_async(self.save)()
 
     class Meta:
         ordering = ['-uploaded_at']

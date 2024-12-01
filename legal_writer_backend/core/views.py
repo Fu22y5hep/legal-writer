@@ -2,6 +2,8 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, response
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.utils.decorators import sync_and_async_middleware
+from asgiref.sync import sync_to_async
 from .models import Project, Document, Note, Resource
 from .serializers import ProjectSerializer, DocumentSerializer, NoteSerializer, ResourceSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -74,3 +76,22 @@ class ResourceViewSet(viewsets.ModelViewSet):
             'extraction_error': resource.extraction_error or None,
             'last_extracted': resource.last_extracted
         })
+
+    @action(detail=True, methods=['post'])
+    def summarize(self, request, pk=None):
+        """Endpoint to manually trigger content summarization"""
+        resource = self.get_object()
+        
+        # Run the async summarization in a sync context
+        async def async_summarize():
+            await resource.summarize()
+            return {
+                'status': 'success',
+                'summary': resource.summary or None,
+                'summary_error': resource.summary_error or None,
+                'last_summarized': resource.last_summarized
+            }
+        
+        from asgiref.sync import async_to_sync
+        result = async_to_sync(async_summarize)()
+        return Response(result)

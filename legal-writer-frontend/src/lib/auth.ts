@@ -31,9 +31,12 @@ export const getAccessToken = () => {
 export const clearTokens = () => {
   localStorage.removeItem('accessToken');
   Cookies.remove(REFRESH_TOKEN_COOKIE);
+  window.location.href = '/login'; // Redirect to login page when tokens are cleared
 };
 
-export const isTokenExpired = (token: string): boolean => {
+export const isTokenExpired = (token: string | null): boolean => {
+  if (!token) return true;
+  
   try {
     const decoded = jwtDecode<JWTPayload>(token);
     const currentTime = Math.floor(Date.now() / 1000);
@@ -53,12 +56,14 @@ export const refreshAccessToken = async () => {
 
   try {
     console.log('Attempting to refresh access token...');
-    const response = await fetch('http://localhost:8000/api/auth/token/refresh/', {
+    const response = await fetch('http://localhost:8000/api/token/refresh/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({ refresh: refreshToken }),
+      credentials: 'include',
     });
 
     if (!response.ok) {
