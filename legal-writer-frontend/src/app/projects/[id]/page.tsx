@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -8,13 +8,19 @@ import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
 import Text from '@tiptap/extension-text';
 import Heading from '@tiptap/extension-heading';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
 import MenuBar from '@/components/editor/EditorMenuBar';
 import ChatAssistant from '@/components/chat/ChatAssistant';
 import ProjectResources from '@/components/projects/ProjectResources';
 import ProjectNotes from '@/components/projects/ProjectNotes';
+import DocumentList from '@/components/documents/DocumentList';
 import { api } from '@/lib/api';
+import { Suspense } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFile, faComment, faStickyNote, faFolder } from '@fortawesome/free-solid-svg-icons';
 
-export type TabType = 'editor' | 'chat' | 'notes' | 'resources';
+export type TabType = 'documents' | 'editor' | 'chat' | 'notes' | 'resources';
 
 interface Project {
   id: number;
@@ -35,32 +41,18 @@ const formatDate = (date: string) => {
   }).format(new Date(date));
 };
 
-export default function ProjectPage() {
-  const params = useParams();
+export default function ProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tab = (searchParams.get('tab') as TabType) || 'editor';
+  const tab = (searchParams.get('tab') as TabType) || 'documents';
   
+  const projectId = use(params).id;
   const [project, setProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const data = await api.getProject(Number(params.id));
-        setProject(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load project');
-        console.error('Error fetching project:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProject();
-  }, [params.id]);
+  const [isMounted, setIsMounted] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -68,12 +60,43 @@ export default function ProjectPage() {
       Document,
       Paragraph,
       Text,
-      Heading.configure({
-        levels: [1, 2],
+      Heading,
+      Underline,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
     ],
-    content: '<p>Start writing your document...</p>',
+    content: '',
+    onUpdate: ({ editor }) => {
+      const text = editor.getText();
+      setWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+    },
   });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const data = await api.getProject(Number(projectId));
+        setProject(data);
+        setError(null);
+      } catch (error) {
+        console.error('Error fetching project:', error);
+        setError('Failed to load project');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProject();
+  }, [projectId]);
+
+  const handleTabChange = (newTab: TabType) => {
+    router.push(`/projects/${projectId}?tab=${newTab}`);
+  };
 
   if (isLoading) {
     return (
@@ -91,57 +114,68 @@ export default function ProjectPage() {
     );
   }
 
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Main Content Area */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">{project?.title}</h1>
+          <p className="text-gray-500">{project?.description}</p>
+        </div>
+
+        <div className="bg-white shadow rounded-lg p-6">
+          {tab === 'documents' && (
+            <Suspense fallback={<div>Loading documents...</div>}>
+              <DocumentList projectId={projectId} />
+            </Suspense>
+          )}
           {tab === 'editor' && (
-            <div>
-              <div className="mb-4 flex justify-between items-center">
-                <h2 className="text-lg font-medium text-gray-900">Document Editor</h2>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100">
+            <div className="editor-container">
+              <div className="editor-header">
+                <h1 className="document-title">
+                  {project?.title || 'Untitled Document'}
+                </h1>
+                <div className="header-actions">
+                  <button
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                    onClick={() => {
+                      // TODO: Implement save functionality
+                      setLastSaved(new Date());
+                    }}
+                  >
                     Save Draft
                   </button>
-                  <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  <button className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">
                     Publish
                   </button>
                 </div>
               </div>
-              <div className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none">
-                {editor && (
-                  <>
-                    <MenuBar editor={editor} />
-                    <div className="min-h-[calc(100vh-24rem)] border rounded-lg p-4 mt-2">
-                      <EditorContent editor={editor} />
-                    </div>
-                  </>
-                )}
+
+              <MenuBar editor={editor} />
+
+              <div className="editor-main">
+                <EditorContent editor={editor} />
+              </div>
+
+              <div className="editor-statusbar">
+                <div className="flex items-center gap-4">
+                  <span>Words: {wordCount}</span>
+                  {lastSaved && (
+                    <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
+                  )}
+                </div>
+                <div>
+                  <span>100%</span>
+                </div>
               </div>
             </div>
           )}
-          
-          {tab === 'chat' && (
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">AI Chat Assistant</h2>
-              <ChatAssistant />
-            </div>
-          )}
-          
-          {tab === 'notes' && (
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Project Notes</h2>
-              <ProjectNotes projectId={Number(params.id)} />
-            </div>
-          )}
-          
-          {tab === 'resources' && (
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Project Resources</h2>
-              <ProjectResources projectId={Number(params.id)} />
-            </div>
-          )}
+          {tab === 'chat' && <ChatAssistant />}
+          {tab === 'notes' && <ProjectNotes projectId={Number(projectId)} />}
+          {tab === 'resources' && <ProjectResources projectId={Number(projectId)} />}
         </div>
       </div>
     </div>

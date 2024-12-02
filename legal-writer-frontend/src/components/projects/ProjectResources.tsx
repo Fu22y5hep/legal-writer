@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import SummarizeButton from '@/components/resources/SummarizeButton';
 import { ExtractedContent } from '../resources/ExtractedContent';
 import { Summary } from '../resources/Summary';
+import { DocumentIcon } from '@heroicons/react/24/outline';
 
 interface Resource {
   id: number;
@@ -101,7 +102,7 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const toggleResource = (resourceId: number) => {
+  const handleExpandResource = (resourceId: number) => {
     setExpandedResourceId(expandedResourceId === resourceId ? null : resourceId);
   };
 
@@ -129,10 +130,16 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
         </div>
       )}
 
-      <div className="bg-white shadow-sm rounded-md border border-gray-200 divide-y divide-gray-200">
-        {resources.map(resource => (
-          <div key={resource.id} className="group">
-            <div className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150 ease-in-out">
+      <div className="divide-y divide-gray-200 border border-gray-200 rounded-md shadow-sm">
+        {resources.map((resource, index) => (
+          <div
+            key={resource.id}
+            className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors duration-150 ease-in-out`}
+          >
+            <div 
+              className="px-4 py-3 cursor-pointer transition-colors duration-150 ease-in-out"
+              onClick={() => handleExpandResource(resource.id)}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex-grow min-w-0">
                   <div className="flex items-center space-x-3">
@@ -146,7 +153,10 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                         </h3>
                         <div className="flex items-center gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => handleDelete(resource.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(resource.id);
+                            }}
                             className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors duration-150"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
@@ -163,10 +173,22 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                     </div>
                   </div>
                 </div>
+                <div className="ml-4 flex-shrink-0">
+                  <svg 
+                    className={`h-4 w-4 text-gray-400 transform transition-transform duration-200 ${expandedResourceId === resource.id ? 'rotate-180' : ''}`} 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 20 20" 
+                    fill="currentColor"
+                  >
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
               </div>
-              {expandedResourceId === resource.id && (
-                <div className="p-4 bg-gray-50 border-t">
-                  <div className="flex justify-end mb-4">
+            </div>
+            {expandedResourceId === resource.id && (
+              <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                <div className="space-y-3">
+                  <div className="flex justify-end">
                     <a 
                       href={resource.file}
                       target="_blank"
@@ -176,7 +198,6 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                       Download File
                     </a>
                   </div>
-
                   {resource.file_type === 'PDF' && (
                     <>
                       <ExtractedContent
@@ -198,11 +219,35 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                           fetchResources();
                         }}
                       />
+                      <SummarizeButton 
+                        resourceId={resource.id} 
+                        projectId={projectId}
+                        resourceTitle={resource.title}
+                        onSummarized={() => {
+                          const fetchResources = async () => {
+                            try {
+                              const data = await api.getResources(projectId);
+                              setResources(data);
+                              setError(null);
+                            } catch (err) {
+                              console.error('Error fetching resources:', err);
+                              setError('Failed to load resources');
+                            }
+                          };
+                          fetchResources();
+                        }}
+                      />
                     </>
                   )}
+                  {resource.summary && (
+                    <div className="mt-3">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Summary</h4>
+                      <p className="text-sm text-gray-600">{resource.summary}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         ))}
         {resources.length === 0 && (

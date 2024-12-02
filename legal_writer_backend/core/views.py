@@ -7,6 +7,11 @@ from asgiref.sync import sync_to_async
 from .models import Project, Document, Note, Resource
 from .serializers import ProjectSerializer, DocumentSerializer, NoteSerializer, ResourceSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import serializers
+import logging
+import json
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -26,6 +31,86 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Document.objects.filter(project__owner=self.request.user)
+
+    def get_serializer_context(self):
+        # Pass request to serializer for additional validation
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def create(self, request, *args, **kwargs):
+        # Detailed logging for document creation
+        logger.info(f"Document creation request received")
+        logger.info(f"Request user: {request.user}")
+        
+        # Log raw request data
+        try:
+            request_body = json.loads(request.body.decode('utf-8'))
+            logger.info(f"Request body: {request_body}")
+        except Exception as e:
+            logger.error(f"Error parsing request body: {e}")
+            request_body = request.data
+
+        # Log request data
+        logger.info(f"Request data: {request.data}")
+
+        try:
+            # Validate project ownership
+            project_id = request.data.get('project')
+            
+            if not project_id:
+                logger.error("No project ID provided")
+                return Response(
+                    {"project": "Project ID is required"}, 
+                    status=400
+                )
+
+            try:
+                project = Project.objects.get(id=project_id, owner=request.user)
+                logger.info(f"Project found: {project}")
+            except Project.DoesNotExist:
+                logger.error(f"Project not found or unauthorized: {project_id}")
+                return Response(
+                    {"project": "Invalid project or unauthorized access"}, 
+                    status=403
+                )
+
+            # Prepare serializer
+            serializer = self.get_serializer(data=request.data)
+            
+            try:
+                # Validate serializer
+                serializer.is_valid(raise_exception=True)
+                logger.info("Serializer validation passed")
+            except serializers.ValidationError as e:
+                logger.error(f"Validation error: {e}")
+                return Response(e.detail, status=400)
+
+            # Create the document
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            
+            logger.info(f"Document created successfully: {serializer.data}")
+            return Response(serializer.data, status=201, headers=headers)
+
+        except Exception as e:
+            # Catch-all for any unexpected errors
+            logger.error(f"Unexpected error in document creation: {str(e)}", exc_info=True)
+            return Response(
+                {"detail": str(e)}, 
+                status=500
+            )
+
+    def perform_create(self, serializer):
+        # Validate project ownership
+        project_id = self.request.data.get('project')
+        try:
+            project = Project.objects.get(id=project_id, owner=self.request.user)
+            serializer.save(project=project)
+        except Project.DoesNotExist:
+            raise serializers.ValidationError({
+                "project": "Invalid project or unauthorized access"
+            })
 
 class NoteViewSet(viewsets.ModelViewSet):
     serializer_class = NoteSerializer

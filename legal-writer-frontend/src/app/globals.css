@@ -9,44 +9,124 @@
   }
 }
 
-/* TipTap Editor Styles */
-.ProseMirror {
-  @apply min-h-[200px] p-4;
+/* Editor Container */
+.editor-container {
+  @apply flex flex-col h-screen bg-gray-50;
 }
 
-.ProseMirror:focus {
-  @apply outline-none;
+/* Editor Header */
+.editor-header {
+  @apply bg-white border-b border-gray-200 px-4 py-2 flex justify-between items-center;
+}
+
+.document-title {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+.header-actions {
+  @apply flex gap-2;
+}
+
+/* Menu Bar */
+.editor-menubar {
+  @apply bg-white border-b border-gray-200 p-2 flex flex-wrap gap-2;
+}
+
+.menubar-group {
+  @apply flex items-center gap-1 px-2 border-r border-gray-200 last:border-r-0;
+}
+
+/* Menu Buttons */
+.menu-button {
+  @apply px-2 py-1 rounded hover:bg-gray-100 transition-colors
+    flex items-center justify-center min-w-[32px] h-8
+    text-gray-700 hover:text-gray-900;
+}
+
+.menu-button.is-active {
+  @apply bg-blue-50 text-blue-600;
+}
+
+/* Dropdown Menus */
+.menu-select {
+  @apply h-8 px-2 rounded border border-gray-200 
+    bg-white text-gray-700 text-sm
+    focus:outline-none focus:border-blue-500;
+}
+
+/* Editor Content */
+.ProseMirror {
+  @apply min-h-[calc(100vh-160px)] p-8 mx-auto my-4
+    bg-white shadow-sm
+    max-w-[21cm] /* A4 width */
+    outline-none;
 }
 
 .ProseMirror > * + * {
-  margin-top: 0.75em;
+  @apply mt-4;
 }
 
-.ProseMirror ul,
-.ProseMirror ol {
-  padding: 0 1rem;
+/* Typography */
+.ProseMirror p {
+  @apply my-2 leading-relaxed;
 }
 
 .ProseMirror h1 {
-  @apply text-2xl font-bold;
+  @apply text-3xl font-bold mb-4;
 }
 
 .ProseMirror h2 {
-  @apply text-xl font-bold;
+  @apply text-2xl font-bold mb-3;
 }
 
-.ProseMirror h3 {
-  @apply text-lg font-bold;
+/* Lists */
+.ProseMirror ul {
+  @apply list-disc pl-6 my-2;
 }
 
-.ProseMirror code {
-  @apply bg-gray-100 px-1 rounded;
+.ProseMirror ol {
+  @apply list-decimal pl-6 my-2;
 }
 
-.ProseMirror pre {
-  @apply bg-gray-100 p-4 rounded;
-}
-
+/* Blockquotes */
 .ProseMirror blockquote {
-  @apply border-l-4 border-gray-300 pl-4 italic;
+  @apply border-l-4 border-gray-300 pl-4 italic my-4;
+}
+
+/* Status Bar */
+.editor-statusbar {
+  @apply bg-white border-t border-gray-200 px-4 py-1
+    flex justify-between items-center text-sm text-gray-600;
+}
+
+/* Print Styles */
+@media print {
+  .editor-header,
+  .editor-menubar,
+  .editor-statusbar {
+    @apply hidden;
+  }
+
+  .ProseMirror {
+    @apply shadow-none max-w-none p-0 m-0;
+  }
+}
+
+/* Custom scrollbar */
+.editor-main::-webkit-scrollbar {
+  width: 12px;
+}
+
+.editor-main::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.editor-main::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 3px solid #f1f1f1;
+}
+
+.editor-main::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }

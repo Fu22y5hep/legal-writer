@@ -86,6 +86,17 @@ export default function FunctionPane({ className = '' }: FunctionPaneProps) {
       {/* Navigation Buttons */}
       <div className="flex-1 py-2">
         <button
+          onClick={() => handleTabChange('documents')}
+          className={`w-full flex items-center px-3 py-2 text-sm ${
+            currentTab === 'documents'
+              ? 'text-blue-600 bg-blue-50'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <DocumentDuplicateIcon className="h-5 w-5 mr-3" />
+          Documents
+        </button>
+        <button
           onClick={() => handleTabChange('editor')}
           className={`w-full flex items-center px-3 py-2 text-sm ${
             currentTab === 'editor'
