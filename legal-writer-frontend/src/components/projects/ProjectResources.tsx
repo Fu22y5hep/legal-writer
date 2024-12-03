@@ -186,66 +186,94 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
               </div>
             </div>
             {expandedResourceId === resource.id && (
-              <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                <div className="space-y-3">
-                  <div className="flex justify-end">
-                    <a 
-                      href={resource.file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      Download File
-                    </a>
-                  </div>
-                  {resource.file_type === 'PDF' && (
-                    <>
-                      <ExtractedContent
-                        resourceId={resource.id}
-                        projectId={projectId}
-                        content={resource.content_extracted}
-                        error={resource.extraction_error}
-                        lastExtracted={resource.last_extracted}
-                        onExtractComplete={() => {
-                          const fetchResources = async () => {
-                            try {
-                              const data = await api.getResources(projectId);
-                              setResources(data);
-                              setError(null);
-                            } catch (err) {
-                              console.error('Error fetching resources:', err);
-                              setError('Failed to load resources');
-                            }
-                          };
-                          fetchResources();
-                        }}
-                      />
-                      <SummarizeButton 
-                        resourceId={resource.id} 
-                        projectId={projectId}
-                        resourceTitle={resource.title}
-                        onSummarized={() => {
-                          const fetchResources = async () => {
-                            try {
-                              const data = await api.getResources(projectId);
-                              setResources(data);
-                              setError(null);
-                            } catch (err) {
-                              console.error('Error fetching resources:', err);
-                              setError('Failed to load resources');
-                            }
-                          };
-                          fetchResources();
-                        }}
-                      />
-                    </>
-                  )}
-                  {resource.summary && (
-                    <div className="mt-3">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Summary</h4>
-                      <p className="text-sm text-gray-600">{resource.summary}</p>
+              <div className="fixed inset-0 z-50 overflow-y-auto">
+                {/* Backdrop */}
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+                
+                {/* Modal container */}
+                <div className="flex min-h-full items-center justify-center p-4">
+                  <div className="relative w-full max-w-6xl bg-white rounded-xl shadow-2xl">
+                    {/* Header with close button */}
+                    <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {resource.title}
+                      </h3>
+                      <button
+                        onClick={() => handleExpandResource(resource.id)}
+                        className="text-gray-400 hover:text-gray-500"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
-                  )}
+                    
+                    {/* Content */}
+                    <div className="p-8 max-h-[calc(100vh-8rem)] overflow-y-auto">
+                      <div className="space-y-4">
+                        <div className="flex justify-end">
+                          <a 
+                            href={resource.file}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            Download File
+                          </a>
+                        </div>
+                        
+                        {resource.file_type === 'PDF' && (
+                          <>
+                            <ExtractedContent
+                              resourceId={resource.id}
+                              projectId={projectId}
+                              content={resource.content_extracted}
+                              error={resource.extraction_error}
+                              lastExtracted={resource.last_extracted}
+                              onExtractComplete={() => {
+                                const fetchResources = async () => {
+                                  try {
+                                    const data = await api.getResources(projectId);
+                                    setResources(data);
+                                    setError(null);
+                                  } catch (err) {
+                                    console.error('Error fetching resources:', err);
+                                    setError('Failed to load resources');
+                                  }
+                                };
+                                fetchResources();
+                              }}
+                            />
+                            <SummarizeButton 
+                              resourceId={resource.id} 
+                              projectId={projectId}
+                              resourceTitle={resource.title}
+                              onSummarized={() => {
+                                const fetchResources = async () => {
+                                  try {
+                                    const data = await api.getResources(projectId);
+                                    setResources(data);
+                                    setError(null);
+                                  } catch (err) {
+                                    console.error('Error fetching resources:', err);
+                                    setError('Failed to load resources');
+                                  }
+                                };
+                                fetchResources();
+                              }}
+                            />
+                          </>
+                        )}
+                        
+                        {resource.summary && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">Summary</h4>
+                            <p className="text-sm text-gray-600">{resource.summary}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
