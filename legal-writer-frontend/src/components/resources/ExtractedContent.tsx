@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
+import { SelectableText } from '../common/SelectableText';
+import { toast } from 'react-hot-toast';
 
 interface ExtractedContentProps {
   resourceId: number;
+  projectId: number;
   content?: string;
   error?: string;
   lastExtracted?: string;
@@ -11,6 +14,7 @@ interface ExtractedContentProps {
 
 export const ExtractedContent: React.FC<ExtractedContentProps> = ({
   resourceId,
+  projectId,
   content,
   error,
   lastExtracted,
@@ -19,6 +23,7 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState(error);
   const [extractedContent, setExtractedContent] = useState(content);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
 
   const handleExtract = async () => {
     setIsExtracting(true);
@@ -30,31 +35,42 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
       setExtractionError(response.extraction_error);
       
       if (response.content_extracted) {
-        // toast({
-        //   title: 'Content extracted successfully',
-        //   status: 'success',
-        //   duration: 3000,
-        // });
+        toast.success('Content extracted successfully');
       } else if (response.extraction_error) {
-        // toast({
-        //   title: 'Extraction failed',
-        //   description: response.extraction_error,
-        //   status: 'error',
-        //   duration: 5000,
-        // });
+        toast.error('Extraction failed: ' + response.extraction_error);
       }
 
       onExtractComplete?.();
     } catch (err: any) {
       setExtractionError(err.message);
-      // toast({
-      //   title: 'Failed to extract content',
-      //   description: err.message,
-      //   status: 'error',
-      //   duration: 5000,
-      // });
+      toast.error('Failed to extract content: ' + err.message);
     } finally {
       setIsExtracting(false);
+    }
+  };
+
+  const handleCopy = async (selectedText: string, title: string) => {
+    if (isCreatingNote || !selectedText.trim()) return;
+
+    setIsCreatingNote(true);
+    try {
+      // Create a new note with the selected text
+      await api.createNote({
+        content: selectedText.trim(),
+        title: title,
+        name_identifier: `note_${Date.now()}`,
+        project: projectId,
+      });
+
+      // Copy to clipboard as well
+      await navigator.clipboard.writeText(selectedText);
+      
+      toast.success('Note created successfully');
+    } catch (error) {
+      console.error('Error creating note:', error);
+      toast.error('Failed to create note');
+    } finally {
+      setIsCreatingNote(false);
     }
   };
 
@@ -77,8 +93,10 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
 
       {/* Content Display */}
       {extractedContent ? (
-        <div className="bg-gray-50 p-4 rounded-md max-h-[500px] overflow-y-auto whitespace-pre-wrap">
-          <p className="text-gray-800">{extractedContent}</p>
+        <div className="bg-gray-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
+          <SelectableText onCopy={handleCopy}>
+            <p className="text-gray-800 whitespace-pre-wrap">{extractedContent}</p>
+          </SelectableText>
         </div>
       ) : (
         <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded relative">
@@ -103,7 +121,7 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
             Extracting...
           </>
         ) : (
-          extractedContent ? 'Re-extract Content' : 'Extract Content'
+          'Extract Content'
         )}
       </button>
     </div>

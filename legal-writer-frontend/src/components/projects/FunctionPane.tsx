@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import {
   ChatBubbleLeftIcon,
-  DocumentTextIcon,
   DocumentDuplicateIcon,
   PencilSquareIcon,
   FolderIcon,
@@ -95,17 +94,6 @@ export default function FunctionPane({ className = '' }: FunctionPaneProps) {
         >
           <DocumentDuplicateIcon className="h-5 w-5 mr-3" />
           Documents
-        </button>
-        <button
-          onClick={() => handleTabChange('editor')}
-          className={`w-full flex items-center px-3 py-2 text-sm ${
-            currentTab === 'editor'
-              ? 'text-blue-600 bg-blue-50'
-              : 'text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          <DocumentTextIcon className="h-5 w-5 mr-3" />
-          Editor
         </button>
         <button
           onClick={() => handleTabChange('chat')}

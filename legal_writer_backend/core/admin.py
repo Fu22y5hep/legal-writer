@@ -19,9 +19,9 @@ class DocumentAdmin(admin.ModelAdmin):
 
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
-    list_display = ('project', 'created_at', 'updated_at')
+    list_display = ('title', 'project', 'created_at', 'updated_at')
     list_filter = ('project', 'created_at')
-    search_fields = ('content',)
+    search_fields = ('title', 'content')
     ordering = ('-created_at',)
 
 @admin.register(Resource)

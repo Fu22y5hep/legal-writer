@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFile, faTrash, faPencilAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faFile, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 

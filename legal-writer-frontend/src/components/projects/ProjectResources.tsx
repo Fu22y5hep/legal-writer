@@ -202,6 +202,7 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                     <>
                       <ExtractedContent
                         resourceId={resource.id}
+                        projectId={projectId}
                         content={resource.content_extracted}
                         error={resource.extraction_error}
                         lastExtracted={resource.last_extracted}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { FloatingCopyButton } from './FloatingCopyButton';
+import { CreateNoteModal } from './CreateNoteModal';
 
 interface SelectableTextProps {
   children: React.ReactNode;
-  onCopy?: (text: string) => void;
+  onCopy?: (text: string, title: string) => void;
 }
 
 export const SelectableText: React.FC<SelectableTextProps> = ({ children, onCopy }) => {
@@ -11,6 +12,7 @@ export const SelectableText: React.FC<SelectableTextProps> = ({ children, onCopy
   const [showButton, setShowButton] = useState(false);
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
   const [selectedText, setSelectedText] = useState('');
+  const [showModal, setShowModal] = useState(false);
 
   const handleSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -38,10 +40,17 @@ export const SelectableText: React.FC<SelectableTextProps> = ({ children, onCopy
   }, []);
 
   const handleCopy = useCallback(() => {
-    if (onCopy && selectedText) {
-      onCopy(selectedText);
+    if (selectedText) {
+      setShowModal(true);
+      setShowButton(false);
     }
-    setShowButton(false);
+  }, [selectedText]);
+
+  const handleCreateNote = useCallback((title: string) => {
+    if (onCopy && selectedText) {
+      onCopy(selectedText, title);
+    }
+    setShowModal(false);
   }, [selectedText, onCopy]);
 
   // Handle selection changes
@@ -105,6 +114,12 @@ export const SelectableText: React.FC<SelectableTextProps> = ({ children, onCopy
           onCopy={handleCopy}
         />
       )}
+      <CreateNoteModal
+        isOpen={showModal}
+        selectedText={selectedText}
+        onClose={() => setShowModal(false)}
+        onConfirm={handleCreateNote}
+      />
     </div>
   );
 };
