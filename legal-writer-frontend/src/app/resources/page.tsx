@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import ResourceUpload from '@/components/resources/ResourceUpload';
 import ResourceList from '@/components/resources/ResourceList';
 
@@ -11,6 +12,9 @@ interface Resource {
   file_size: number;
   uploaded_at: string;
   description: string;
+  content_extracted?: string;
+  extraction_error?: string;
+  last_extracted?: string;
 }
 
 // Mock data for development
@@ -30,10 +34,13 @@ const mockResources: Resource[] = [
     file_size: 1024 * 1024 * 5.7, // 5.7MB
     uploaded_at: '2024-01-14T15:45:00Z',
     description: 'Research document on recent case law',
+    content_extracted: '# Legal Research Document\n\n## Introduction\nThis document contains important legal research findings...\n\n## Key Points\n- Point 1\n- Point 2\n- Point 3\n\n## Conclusion\nBased on the research...',
   },
 ];
 
 export default function ResourcesPage() {
+  const params = useParams();
+  const projectId = Number(params.id) || 0;
   const [resources, setResources] = useState<Resource[]>(mockResources);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -95,6 +102,18 @@ export default function ResourcesPage() {
       // TODO: Implement text extraction and analysis
       // const analysis = await api.analyzeResource(id);
       console.log('Extracting text from resource:', id);
+      
+      // Mock extraction response
+      setResources(prev => prev.map(resource => {
+        if (resource.id === id) {
+          return {
+            ...resource,
+            content_extracted: '# Extracted Content\n\n## Section 1\nThis is some extracted content from the document...\n\n## Section 2\n- Point 1\n- Point 2\n\n## Conclusion\nFinal thoughts...',
+            last_extracted: new Date().toISOString(),
+          };
+        }
+        return resource;
+      }));
     } catch (error) {
       console.error('Failed to analyze resource:', error);
       // TODO: Show error notification
@@ -114,6 +133,7 @@ export default function ResourcesPage() {
 
       <ResourceList
         resources={resources}
+        projectId={projectId}
         onDelete={handleDelete}
         onDownload={handleDownload}
         onExtract={handleExtract}

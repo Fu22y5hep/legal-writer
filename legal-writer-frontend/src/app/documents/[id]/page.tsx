@@ -13,6 +13,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import MenuBar from '@/components/editor/EditorMenuBar';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 
 interface Document {
   id: string;
@@ -104,66 +105,58 @@ export default function DocumentPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-red-500">
+      <div className="h-full flex items-center justify-center text-red-500">
         {error}
       </div>
     );
   }
 
-  if (!document) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        Document not found
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        {editing ? (
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="text-3xl font-bold w-full border-b-2 border-gray-300 focus:border-blue-500 outline-none"
-          />
-        ) : (
-          <h1 className="text-3xl font-bold">{title}</h1>
-        )}
-        <div className="flex gap-2">
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex-1">
+          {editing ? (
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-2 py-1 border rounded"
+            />
+          ) : (
+            <h1 className="text-2xl font-semibold">{title}</h1>
+          )}
+        </div>
+        <div className="flex items-center space-x-2">
           {editing ? (
             <>
               <button
-                onClick={handleSave}
+                onClick={() => setEditing(false)}
+                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
                 disabled={saving}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                onClick={() => {
-                  setEditing(false);
-                  setTitle(document.title);
-                  if (editor) {
-                    editor.commands.setContent(document.content);
-                  }
-                }}
-                disabled={saving}
-                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 disabled:opacity-50"
               >
                 Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </>
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
             >
               Edit
             </button>
@@ -171,16 +164,18 @@ export default function DocumentPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md">
-        {editing && editor && (
-          <div className="border-b border-gray-200 p-2">
-            <MenuBar editor={editor} />
+      {editing ? (
+        <div className="flex-1 flex flex-col">
+          <MenuBar editor={editor} />
+          <div className="flex-1 p-4 overflow-auto">
+            <EditorContent editor={editor} />
           </div>
-        )}
-        <div className="p-6">
-          <EditorContent editor={editor} className="prose max-w-none" />
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 p-4 overflow-auto prose max-w-none">
+          <ReactMarkdown>{document?.content || ''}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }

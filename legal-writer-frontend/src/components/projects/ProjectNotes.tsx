@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { EditNoteModal } from '../common/EditNoteModal';
 import { PencilIcon, TrashIcon, ChevronDownIcon, DocumentIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import ReactMarkdown from 'react-markdown';
 import './ProjectNotes.css';
 
 interface Note {
@@ -230,8 +231,8 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
                     </div>
                     {expandedNoteId === note.id && (
                       <div className="mt-2 border-t pt-2">
-                        <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {note.content}
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown>{note.content}</ReactMarkdown>
                         </div>
                       </div>
                     )}
