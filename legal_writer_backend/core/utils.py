@@ -2,6 +2,7 @@ import os
 import pymupdf4llm
 import magic
 import openai
+import re
 from django.conf import settings
 from asgiref.sync import sync_to_async
 
@@ -13,6 +14,61 @@ def get_file_type(file_path):
     mime = magic.Magic(mime=True)
     file_type = mime.from_file(file_path)
     return file_type
+
+def format_markdown_text(text):
+    """Format markdown text for better readability"""
+    # Remove multiple consecutive blank lines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Add proper spacing around headers
+    text = re.sub(r'(#{1,6}.*?)\n', r'\1\n\n', text)
+    
+    # Add proper spacing around lists
+    text = re.sub(r'(\n- .*?\n)(?!\n)', r'\1\n', text)
+    
+    # Add proper spacing around code blocks
+    text = re.sub(r'(```.*?```)', r'\n\1\n', text, flags=re.DOTALL)
+    
+    # Format tables for better readability
+    lines = text.split('\n')
+    formatted_lines = []
+    in_table = False
+    
+    for line in lines:
+        if '|' in line:
+            if not in_table:
+                formatted_lines.append('')  # Add space before table
+                in_table = True
+            formatted_lines.append(line)
+            if line.strip().startswith('|---'):  # Table header separator
+                formatted_lines.append('')  # Add space after header
+        else:
+            if in_table:
+                formatted_lines.append('')  # Add space after table
+                in_table = False
+            formatted_lines.append(line)
+    
+    text = '\n'.join(formatted_lines)
+    
+    # Add proper spacing around blockquotes
+    text = re.sub(r'(\n>.*?\n)(?!\n)', r'\1\n', text)
+    
+    # Clean up any remaining multiple blank lines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Ensure consistent heading hierarchy
+    lines = text.split('\n')
+    min_heading_level = 6
+    for line in lines:
+        if line.startswith('#'):
+            level = len(re.match(r'^#+', line).group())
+            min_heading_level = min(min_heading_level, level)
+    
+    if min_heading_level > 1:
+        # Adjust heading levels to start from h1
+        text = re.sub(r'^(#+)', lambda m: '#' * (len(m.group(1)) - min_heading_level + 1), text, flags=re.MULTILINE)
+    
+    return text.strip()
 
 def extract_text_from_pdf(file_path):
     """Extract text content from a PDF file using pymupdf4llm"""
@@ -27,7 +83,11 @@ def extract_text_from_pdf(file_path):
     try:
         # Convert PDF to markdown using pymupdf4llm
         md_text = pymupdf4llm.to_markdown(file_path)
-        return md_text
+        
+        # Format the markdown text for better readability
+        formatted_text = format_markdown_text(md_text)
+        
+        return formatted_text
     except Exception as e:
         raise Exception(f"Error extracting text from PDF: {str(e)}")
 
