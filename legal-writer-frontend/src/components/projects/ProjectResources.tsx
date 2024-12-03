@@ -33,6 +33,9 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedResourceId, setExpandedResourceId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [totalMatches, setTotalMatches] = useState(0);
 
   // Fetch resources on component mount
   useEffect(() => {
@@ -195,12 +198,76 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                   <div className="relative w-full max-w-6xl bg-white rounded-xl shadow-2xl">
                     {/* Header with close button */}
                     <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {resource.title}
-                      </h3>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {resource.title}
+                        </h3>
+                        {resource.description && (
+                          <p className="mt-1 text-sm text-gray-500">
+                            {resource.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Search input with navigation */}
+                      <div className="flex-1 mx-4">
+                        <div className="relative flex items-center">
+                          <div className="relative flex-grow">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <input
+                              type="text"
+                              value={searchQuery}
+                              onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentMatchIndex(0);
+                              }}
+                              placeholder="Search in content..."
+                              className="block w-full pl-10 pr-20 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            />
+                            {searchQuery && (
+                              <div className="absolute inset-y-0 right-0 flex items-center pr-2 space-x-1">
+                                <span className="text-sm text-gray-500">
+                                  {totalMatches > 0 ? `${currentMatchIndex + 1}/${totalMatches}` : '0/0'}
+                                </span>
+                                <button
+                                  onClick={() => setCurrentMatchIndex(prev => (prev > 0 ? prev - 1 : totalMatches - 1))}
+                                  disabled={totalMatches === 0}
+                                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => setCurrentMatchIndex(prev => (prev < totalMatches - 1 ? prev + 1 : 0))}
+                                  disabled={totalMatches === 0}
+                                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform rotate-180" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => setSearchQuery('')}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                       <button
                         onClick={() => handleExpandResource(resource.id)}
-                        className="text-gray-400 hover:text-gray-500"
+                        className="flex-none text-gray-400 hover:text-gray-500 ml-4"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -230,6 +297,9 @@ export default function ProjectResources({ projectId }: ProjectResourcesProps) {
                               content={resource.content_extracted}
                               error={resource.extraction_error}
                               lastExtracted={resource.last_extracted}
+                              searchQuery={searchQuery}
+                              currentMatchIndex={currentMatchIndex}
+                              onMatchesFound={setTotalMatches}
                               onExtractComplete={() => {
                                 const fetchResources = async () => {
                                   try {

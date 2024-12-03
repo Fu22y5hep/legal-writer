@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { SelectableText } from '../common/SelectableText';
 import { toast } from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 
 interface ExtractedContentProps {
   resourceId: number;
@@ -10,6 +11,9 @@ interface ExtractedContentProps {
   error?: string;
   lastExtracted?: string;
   onExtractComplete?: () => void;
+  searchQuery?: string;
+  currentMatchIndex?: number;
+  onMatchesFound?: (count: number) => void;
 }
 
 export const ExtractedContent: React.FC<ExtractedContentProps> = ({
@@ -19,19 +23,42 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
   error,
   lastExtracted,
   onExtractComplete,
+  searchQuery = '',
+  currentMatchIndex = 0,
+  onMatchesFound,
 }) => {
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractionError, setExtractionError] = useState(error);
-  const [extractedContent, setExtractedContent] = useState(content);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
   const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (content && searchQuery) {
+      const matches = content.match(new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'));
+      const matchCount = matches ? matches.length : 0;
+      onMatchesFound?.(matchCount);
+
+      // Scroll to current match
+      if (contentRef.current) {
+        const marks = contentRef.current.getElementsByTagName('mark');
+        if (marks.length > currentMatchIndex) {
+          const currentMark = marks[currentMatchIndex];
+          currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Remove active class from all marks
+          Array.from(marks).forEach(mark => mark.classList.remove('bg-yellow-300', 'ring-2'));
+          // Add active class to current mark
+          currentMark.classList.add('bg-yellow-300', 'ring-2');
+        }
+      }
+    }
+  }, [searchQuery, currentMatchIndex, content]);
 
   const handleExtract = async () => {
     setIsExtracting(true);
-    setExtractionError(undefined);
+    setExtractionError(null);
 
     try {
       const response = await api.extractResourceContent(resourceId);
-      setExtractedContent(response.content_extracted);
       setExtractionError(response.extraction_error);
       
       if (response.content_extracted) {
@@ -42,7 +69,7 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
 
       onExtractComplete?.();
     } catch (err: any) {
-      setExtractionError(err.message);
+      setExtractionError(err.message || 'Failed to extract content');
       toast.error('Failed to extract content: ' + err.message);
     } finally {
       setIsExtracting(false);
@@ -74,6 +101,72 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
     }
   };
 
+  // Function to highlight search matches
+  const highlightMatches = (text: string) => {
+    if (!searchQuery?.trim()) return text;
+
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === searchQuery.toLowerCase() ? 
+        `<mark class="bg-yellow-200 px-1 rounded transition-all duration-200">${part}</mark>` : 
+        part
+    ).join('');
+  };
+
+  // Custom components for ReactMarkdown
+  const components = {
+    p: ({ children }: { children: React.ReactNode }) => {
+      if (typeof children === 'string') {
+        return (
+          <p 
+            className="mb-4 text-gray-700" 
+            dangerouslySetInnerHTML={{ 
+              __html: highlightMatches(children) 
+            }} 
+          />
+        );
+      }
+      return <p className="mb-4 text-gray-700">{children}</p>;
+    },
+  };
+
+  if (error || extractionError) {
+    return (
+      <div className="rounded-md bg-red-50 p-4">
+        <div className="flex">
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Extraction Error</h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error || extractionError}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!content) {
+    return (
+      <div className="text-center">
+        <button
+          onClick={handleExtract}
+          disabled={isExtracting}
+          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+            isExtracting ? 'opacity-75 cursor-not-allowed' : ''
+          }`}
+        >
+          {isExtracting ? 'Extracting...' : 'Extract Content'}
+        </button>
+        {lastExtracted && (
+          <p className="mt-2 text-sm text-gray-500">
+            Last extracted: {new Date(lastExtracted).toLocaleString()}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Extraction Status */}
@@ -83,47 +176,17 @@ export const ExtractedContent: React.FC<ExtractedContentProps> = ({
         </p>
       )}
 
-      {/* Error Display */}
-      {extractionError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Extraction Error: </strong>
-          <span className="block sm:inline">{extractionError}</span>
-        </div>
-      )}
-
       {/* Content Display */}
-      {extractedContent ? (
-        <div className="bg-gray-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
-          <SelectableText onCopy={handleCopy}>
-            <p className="text-gray-800 whitespace-pre-wrap">{extractedContent}</p>
-          </SelectableText>
-        </div>
-      ) : (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded relative">
-          <p>No content has been extracted yet.</p>
-        </div>
-      )}
-
-      {/* Extract Button */}
-      <button
-        onClick={handleExtract}
-        disabled={isExtracting}
-        className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-          isExtracting ? 'opacity-75 cursor-not-allowed' : ''
-        }`}
-      >
-        {isExtracting ? (
-          <>
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Extracting...
-          </>
-        ) : (
-          'Extract Content'
-        )}
-      </button>
+      <div className="bg-gray-50 p-4 rounded-md max-h-[500px] overflow-y-auto">
+        <SelectableText onCopy={handleCopy}>
+          <div 
+            ref={contentRef}
+            className="prose prose-sm max-w-none text-gray-800"
+          >
+            <ReactMarkdown components={components}>{content}</ReactMarkdown>
+          </div>
+        </SelectableText>
+      </div>
     </div>
   );
 };
