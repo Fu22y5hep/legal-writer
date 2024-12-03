@@ -256,7 +256,8 @@ export const api = {
   },
 
   getNotes: async (projectId: number) => {
-    const response = await fetchWithAuth(`/notes/?project=${projectId}`);
+    const params = new URLSearchParams({ project: projectId.toString() });
+    const response = await fetchWithAuth(`/notes/?${params.toString()}`);
     console.log('Fetched notes:', response);
     return response;
   },
