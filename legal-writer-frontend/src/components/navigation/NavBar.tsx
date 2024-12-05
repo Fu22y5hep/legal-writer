@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NavBar = () => {
+  'use client';
+  
   const pathname = usePathname();
 
   const isActive = (path: string) => {
