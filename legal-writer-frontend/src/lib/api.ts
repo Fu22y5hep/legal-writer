@@ -18,11 +18,15 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
   console.log('Making request to:', url);
 
   try {
-    let headers = {
-      'Content-Type': 'application/json',
+    let headers: Record<string, string> = {
       'Accept': 'application/json',
       ...fetchConfig.headers,
     };
+
+    // Only set Content-Type if not skipped and not FormData
+    if (!skipContentType && !(fetchConfig.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (requiresAuth) {
       let accessToken = getAccessToken();
@@ -223,14 +227,13 @@ export const api = {
 
   // Resources
   getResources: async (projectId: number) => {
-    return await fetchWithAuth(`/projects/${projectId}/resources/`);
+    return await fetchWithAuth(`/resources/?project=${projectId}`);
   },
 
   uploadResource: async (formData: FormData) => {
     return await fetchWithAuth('/resources/', {
       method: 'POST',
-      body: formData,
-      skipContentType: true,
+      body: formData
     });
   },
 
