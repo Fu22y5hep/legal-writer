@@ -133,47 +133,12 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
             </Suspense>
           )}
           {tab === 'editor' && (
-            <div className="editor-container">
-              <div className="editor-header">
-                <h1 className="document-title">
-                  {project?.title || 'Untitled Document'}
-                </h1>
-                <div className="header-actions">
-                  <button
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                    onClick={() => {
-                      // TODO: Implement save functionality
-                      setLastSaved(new Date());
-                    }}
-                  >
-                    Save Draft
-                  </button>
-                  <button className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                    Publish
-                  </button>
-                </div>
-              </div>
-
+            <div className="h-full flex flex-col">
               <MenuBar editor={editor} />
-
-              <div className="editor-main">
-                <EditorContent editor={editor} />
-              </div>
-
-              <div className="editor-statusbar">
-                <div className="flex items-center gap-4">
-                  <span>Words: {wordCount}</span>
-                  {lastSaved && (
-                    <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
-                  )}
-                </div>
-                <div>
-                  <span>100%</span>
-                </div>
-              </div>
+              <EditorContent editor={editor} className="flex-1 overflow-y-auto p-4" />
             </div>
           )}
-          {tab === 'chat' && <ChatAssistant />}
+          {tab === 'chat' && <ChatAssistant projectId={projectId} />}
           {tab === 'notes' && <ProjectNotes projectId={Number(projectId)} />}
           {tab === 'resources' && <ProjectResources projectId={Number(projectId)} />}
         </div>

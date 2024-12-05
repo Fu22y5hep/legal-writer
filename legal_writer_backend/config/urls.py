@@ -6,7 +6,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import routers
-from core.views import ProjectViewSet, DocumentViewSet, NoteViewSet, ResourceViewSet
+from core.views import ProjectViewSet, DocumentViewSet, NoteViewSet, ResourceViewSet, ChatView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -24,6 +24,7 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/chat/', ChatView.as_view(), name='chat'),
 ]
 
 if settings.DEBUG:

@@ -223,33 +223,49 @@ export const api = {
 
   // Resources
   getResources: async (projectId: number) => {
-    return await fetchWithAuth(`/resources/?project=${projectId}`);
+    return await fetchWithAuth(`/projects/${projectId}/resources/`);
   },
 
   uploadResource: async (formData: FormData) => {
     return await fetchWithAuth('/resources/', {
       method: 'POST',
       body: formData,
-      skipContentType: true,  // Important: Skip content-type for FormData
+      skipContentType: true,
     });
   },
 
   extractResourceContent: async (resourceId: number) => {
     return await fetchWithAuth(`/resources/${resourceId}/extract/`, {
-      method: 'POST',
+      method: 'POST'
     });
   },
 
   summarizeResource: async (resourceId: number) => {
     const response = await fetchWithAuth(`/resources/${resourceId}/summarize/`, {
-      method: 'POST',
+      method: 'POST'
     });
     return response;
   },
 
   deleteResource: async (resourceId: number) => {
     return await fetchWithAuth(`/resources/${resourceId}/`, {
-      method: 'DELETE',
+      method: 'DELETE'
+    });
+  },
+
+  // Chat Contexts
+  getAvailableContexts: async (projectId: string) => {
+    return fetchWithAuth(`/projects/${projectId}/available_contexts/`);
+  },
+
+  // Chat
+  chat: async (message: string, contexts: Array<{ type: string; title: string; content: string }>) => {
+    return fetchWithAuth('/chat/', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        contexts
+      }),
     });
   },
 };
