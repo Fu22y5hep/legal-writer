@@ -30,7 +30,11 @@ class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Document.objects.filter(project__owner=self.request.user)
+        project_id = self.request.query_params.get('project')
+        queryset = Document.objects.filter(project__owner=self.request.user)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset
 
     def get_serializer_context(self):
         # Pass request to serializer for additional validation
@@ -117,7 +121,11 @@ class NoteViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Note.objects.filter(project__owner=self.request.user)
+        project_id = self.request.query_params.get('project')
+        queryset = Note.objects.filter(project__owner=self.request.user)
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset
 
 class ResourceViewSet(viewsets.ModelViewSet):
     serializer_class = ResourceSerializer

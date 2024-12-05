@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  // During development, always render children without authentication checks
+  if (process.env.NODE_ENV === 'development') {
+    return <>{children}</>;
+  }
+
   const { isAuthenticated } = useAuth();
   const router = useRouter();
 

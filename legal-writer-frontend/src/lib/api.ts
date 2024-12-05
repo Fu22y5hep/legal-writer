@@ -15,19 +15,23 @@ interface APIError extends Error {
 async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
   const { requiresAuth = true, skipContentType = false, ...fetchConfig } = config;
   const url = `${API_BASE_URL}${endpoint}`;
+  console.log('Making request to:', url);
 
   try {
-    // Handle authentication
+    let headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...fetchConfig.headers,
+    };
+
     if (requiresAuth) {
       let accessToken = getAccessToken();
       
       if (!accessToken) {
-        console.error('No access token found, redirecting to login');
-        clearTokens();
+        console.error('No access token found');
         throw new Error('Authentication required');
       }
 
-      // Check if token is expired and try to refresh
       if (isTokenExpired(accessToken)) {
         console.log('Access token expired, attempting refresh...');
         try {
@@ -40,93 +44,42 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
         }
       }
 
-      // Add authorization header
-      fetchConfig.headers = {
-        ...fetchConfig.headers,
+      headers = {
+        ...headers,
         'Authorization': `Bearer ${accessToken}`,
       };
     }
 
-    // Add content type header for JSON requests
-    if (!skipContentType && !(fetchConfig.body instanceof FormData)) {
-      fetchConfig.headers = {
-        ...fetchConfig.headers,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
-    }
-
-    console.log('Making API request:', {
-      url,
-      method: fetchConfig.method || 'GET',
-      headers: fetchConfig.headers,
-      requiresAuth,
-    });
-
-    // Make the request
     const response = await fetch(url, {
       ...fetchConfig,
-      credentials: 'include', // Always include credentials
+      headers,
+      credentials: 'include',
     });
 
-    console.log('Received response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries()),
-    });
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-    // Parse the response
-    let responseData;
+    if (!response.ok) {
+      console.error('Response not OK:', response.status, response.statusText);
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    let data;
     const contentType = response.headers.get('content-type');
     
     try {
       if (contentType?.includes('application/json')) {
-        responseData = await response.json();
+        data = await response.json();
       } else {
-        responseData = await response.text();
+        data = await response.text();
       }
-      console.log('Parsed response data:', responseData);
+      console.log('Response data:', data);
     } catch (parseError) {
       console.error('Error parsing response:', parseError);
-      responseData = null;
+      data = null;
     }
 
-    // Handle error responses
-    if (!response.ok) {
-      const error = new Error('API request failed') as APIError;
-      error.status = response.status;
-      error.data = responseData;
-
-      // Handle specific status codes
-      switch (response.status) {
-        case 400:
-          console.error('Bad request:', responseData);
-          error.message = typeof responseData === 'object' ? 
-            Object.values(responseData).flat().join(', ') : 
-            responseData?.toString() || 'Invalid request data';
-          break;
-        case 401:
-          console.error('Authentication failed');
-          clearTokens();
-          error.message = 'Authentication failed';
-          break;
-        case 403:
-          console.error('Permission denied');
-          error.message = 'Permission denied';
-          break;
-        case 404:
-          console.error('Resource not found');
-          error.message = 'Resource not found';
-          break;
-        default:
-          console.error('API error:', response.status, responseData);
-          error.message = 'An unexpected error occurred';
-      }
-
-      throw error;
-    }
-
-    return responseData;
+    return data;
   } catch (error) {
     console.error('Request failed:', error);
     throw error;
@@ -156,15 +109,16 @@ export const api = {
 
   // Projects
   getProjects: async () => {
-    return await fetchWithAuth('/projects/');
+    console.log('Fetching projects...');
+    return fetchWithAuth('/projects/');
   },
 
   getProject: async (id: number) => {
-    return await fetchWithAuth(`/projects/${id}/`);
+    return fetchWithAuth(`/projects/${id}/`);
   },
 
   createProject: async (data: { title: string; description?: string }) => {
-    return await fetchWithAuth('/projects/', {
+    return fetchWithAuth('/projects/', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -172,6 +126,7 @@ export const api = {
 
   // Documents
   getDocuments: async (projectId: number) => {
+    console.log('Fetching documents for project:', projectId);
     return fetchWithAuth(`/documents/?project=${projectId}`);
   },
 
@@ -256,10 +211,8 @@ export const api = {
   },
 
   getNotes: async (projectId: number) => {
-    const params = new URLSearchParams({ project: projectId.toString() });
-    const response = await fetchWithAuth(`/notes/?${params.toString()}`);
-    console.log('Fetched notes:', response);
-    return response;
+    console.log('Fetching notes for project:', projectId);
+    return fetchWithAuth(`/notes/?project=${projectId}`);
   },
 
   deleteNote: async (noteId: number) => {

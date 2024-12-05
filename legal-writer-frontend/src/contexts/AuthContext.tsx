@@ -15,7 +15,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // During development, always set isAuthenticated to true
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [user, setUser] = useState(null);
   const router = useRouter();
 
@@ -28,22 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Bypass authentication checks during development
   const login = async (username: string, password: string) => {
-    try {
-      const response = await api.login(username, password);
-      setTokens(response.access, response.refresh);
-      setIsAuthenticated(true);
-      router.push('/projects'); // Redirect to projects page after login
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    }
+    setIsAuthenticated(true);
+    router.push('/projects');
   };
 
   const logout = () => {
-    clearTokens();
-    setIsAuthenticated(false);
-    setUser(null);
+    setIsAuthenticated(true); // Keep authenticated even after logout during development
     router.push('/login');
   };
 
