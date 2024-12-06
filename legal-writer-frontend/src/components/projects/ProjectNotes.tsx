@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { EditNoteModal } from '../common/EditNoteModal';
+import { NewNoteModal } from '../common/NewNoteModal';
 import { PencilIcon, TrashIcon, ChevronDownIcon, DocumentIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
 import './ProjectNotes.css';
@@ -71,18 +72,18 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
     fetchNotes();
   }, [projectId]);
 
-  const handleAddNote = async (e: React.FormEvent) => {
+  const handleAddNote = async (e: React.FormEvent, title: string, content: string) => {
     e.preventDefault();
-    if (!newNote.trim() || !newNoteTitle.trim()) return;
+    if (!content.trim() || !title.trim()) return;
 
     setIsLoading(true);
     setError(null);
     
     try {
       const addedNote = await api.createNote({
-        content: newNote.trim(),
-        title: newNoteTitle.trim(),
-        name_identifier: newNoteTitle.trim(),
+        content: content.trim(),
+        title: title.trim(),
+        name_identifier: title.trim(),
         project: projectId,
       });
 
@@ -267,6 +268,17 @@ export default function ProjectNotes({ projectId }: ProjectNotesProps) {
         note={editingNote}
         onClose={() => setEditingNote(null)}
         onSave={handleSaveEdit}
+      />
+
+      {/* New Note Modal */}
+      <NewNoteModal
+        isOpen={isNewNoteModalOpen}
+        onClose={() => setIsNewNoteModalOpen(false)}
+        onSave={(title, content) => {
+          handleAddNote({
+            preventDefault: () => {},
+          } as React.FormEvent, title, content);
+        }}
       />
     </div>
   );

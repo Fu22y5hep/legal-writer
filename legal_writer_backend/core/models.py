@@ -5,11 +5,18 @@ from asgiref.sync import sync_to_async
 # Create your models here.
 
 class Project(models.Model):
+    STATUS_CHOICES = [
+        ('ACTIVE', 'Active'),
+        ('ARCHIVED', 'Archived'),
+        ('DELETED', 'Deleted'),
+    ]
+    
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
 
     def __str__(self):
         return self.title
@@ -123,3 +130,45 @@ class Resource(models.Model):
 
     class Meta:
         ordering = ['-uploaded_at']
+
+class ChatSession(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='chat_sessions')
+    title = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Chat Session for {self.project.title} - {self.created_at}"
+
+    class Meta:
+        ordering = ['-created_at']
+
+class ChatContext(models.Model):
+    CONTEXT_TYPE_CHOICES = [
+        ('NOTE', 'Note'),
+        ('DOCUMENT', 'Document'),
+        ('RESOURCE', 'Resource'),
+    ]
+
+    chat_session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='contexts')
+    context_type = models.CharField(max_length=10, choices=CONTEXT_TYPE_CHOICES)
+    note = models.ForeignKey(Note, on_delete=models.SET_NULL, null=True, blank=True)
+    document = models.ForeignKey(Document, on_delete=models.SET_NULL, null=True, blank=True)
+    resource = models.ForeignKey(Resource, on_delete=models.SET_NULL, null=True, blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        context_item = self.note or self.document or self.resource
+        return f"{self.context_type} context: {context_item}"
+
+    def get_content(self):
+        if self.context_type == 'NOTE' and self.note:
+            return self.note.content
+        elif self.context_type == 'DOCUMENT' and self.document:
+            return self.document.content
+        elif self.context_type == 'RESOURCE' and self.resource:
+            return self.resource.content_extracted
+        return ''
+
+    class Meta:
+        ordering = ['-added_at']

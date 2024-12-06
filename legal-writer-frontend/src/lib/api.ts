@@ -18,11 +18,15 @@ async function fetchWithAuth(endpoint: string, config: RequestConfig = {}) {
   console.log('Making request to:', url);
 
   try {
-    let headers = {
-      'Content-Type': 'application/json',
+    let headers: Record<string, string> = {
       'Accept': 'application/json',
       ...fetchConfig.headers,
     };
+
+    // Only set Content-Type if not skipped and not FormData
+    if (!skipContentType && !(fetchConfig.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (requiresAuth) {
       let accessToken = getAccessToken();
@@ -229,27 +233,42 @@ export const api = {
   uploadResource: async (formData: FormData) => {
     return await fetchWithAuth('/resources/', {
       method: 'POST',
-      body: formData,
-      skipContentType: true,  // Important: Skip content-type for FormData
+      body: formData
     });
   },
 
   extractResourceContent: async (resourceId: number) => {
     return await fetchWithAuth(`/resources/${resourceId}/extract/`, {
-      method: 'POST',
+      method: 'POST'
     });
   },
 
   summarizeResource: async (resourceId: number) => {
     const response = await fetchWithAuth(`/resources/${resourceId}/summarize/`, {
-      method: 'POST',
+      method: 'POST'
     });
     return response;
   },
 
   deleteResource: async (resourceId: number) => {
     return await fetchWithAuth(`/resources/${resourceId}/`, {
-      method: 'DELETE',
+      method: 'DELETE'
+    });
+  },
+
+  // Chat Contexts
+  getAvailableContexts: async (projectId: string) => {
+    return fetchWithAuth(`/projects/${projectId}/available_contexts/`);
+  },
+
+  // Chat
+  chat: async (message: string, contexts: Array<{ type: string; title: string; content: string }>) => {
+    return fetchWithAuth('/chat/', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        contexts
+      }),
     });
   },
 };

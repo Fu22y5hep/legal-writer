@@ -1,6 +1,6 @@
 from rest_framework import serializers
 """Provides classes for easily serializing complex data types into JSON or other content types."""
-from .models import Project, Document, Note, Resource
+from .models import Project, Document, Note, Resource, ChatSession, ChatContext
 from django.contrib.auth.models import User
 import logging
 
@@ -106,13 +106,48 @@ class DocumentSerializer(serializers.ModelSerializer):
         
         return project
 
+class ChatContextSerializer(serializers.ModelSerializer):
+    content = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChatContext
+        fields = ['id', 'chat_session', 'context_type', 'note', 'document', 'resource', 'added_at', 'content']
+        read_only_fields = ['added_at']
+
+    def get_content(self, obj):
+        return obj.get_content()
+
+    def validate(self, data):
+        context_type = data.get('context_type')
+        note = data.get('note')
+        document = data.get('document')
+        resource = data.get('resource')
+
+        if context_type == 'NOTE' and not note:
+            raise serializers.ValidationError("Note is required for NOTE context type")
+        elif context_type == 'DOCUMENT' and not document:
+            raise serializers.ValidationError("Document is required for DOCUMENT context type")
+        elif context_type == 'RESOURCE' and not resource:
+            raise serializers.ValidationError("Resource is required for RESOURCE context type")
+
+        return data
+
+class ChatSessionSerializer(serializers.ModelSerializer):
+    contexts = ChatContextSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChatSession
+        fields = ['id', 'project', 'title', 'created_at', 'updated_at', 'contexts']
+        read_only_fields = ['created_at', 'updated_at']
+
 class ProjectSerializer(serializers.ModelSerializer):
     owner = UserSerializer(read_only=True)
     documents = DocumentSerializer(many=True, read_only=True)
     notes = NoteSerializer(many=True, read_only=True)
     resources = ResourceSerializer(many=True, read_only=True)
+    chat_sessions = ChatSessionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Project
-        fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'owner', 'documents', 'notes', 'resources']
+        fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'owner', 'documents', 'notes', 'resources', 'chat_sessions']
         read_only_fields = ['created_at', 'updated_at', 'owner']

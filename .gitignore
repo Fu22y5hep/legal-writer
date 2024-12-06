@@ -6,6 +6,8 @@ Thumbs.db
 # Environment Variables
 .env
 .env.local
+.env.*.local
+!.env.example
 .env.development.local
 .env.test.local
 .env.production.local
@@ -63,16 +65,16 @@ Thumbs.db
 # Python / Django (Backend)
 
 # Byte-Compiled / Optimized / DLL Files
-**/__pycache__/
 **/*.py[cod]
 **/*.so
+__pycache__/
+db.sqlite3
 
 # Virtual Environment
 **/venv/
 **/env/
 
 # Django Stuff
-**/db.sqlite3
 **/db.sqlite3-journal
 **/*.sqlite3
 **/media/
@@ -85,6 +87,7 @@ Thumbs.db
 
 # Environment Variables
 **/.env
+!.env.example
 
 # Logs
 **/logs/
