@@ -33,16 +33,25 @@ export default function AIAssistant({ editor }: AIAssistantProps) {
     };
   };
 
-  const restoreSelection = () => {
-    if (selectionRef.current && editor) {
-      editor.commands.setTextSelection({
-        from: selectionRef.current.from,
-        to: selectionRef.current.to
-      });
-    }
-  };
+  // Update selection reference when text is selected
+  useEffect(() => {
+    if (!editor || !isOpen) return;
 
-  // Store selection when opening the panel
+    const updateSelection = () => {
+      const selection = getSelectedText();
+      if (selection) {
+        selectionRef.current = selection;
+      }
+    };
+
+    // Listen for selection changes in the editor
+    editor.on('selectionUpdate', updateSelection);
+    
+    return () => {
+      editor.off('selectionUpdate', updateSelection);
+    };
+  }, [editor, isOpen]);
+
   const handleOpenPanel = () => {
     const selection = getSelectedText();
     if (selection) {
@@ -53,34 +62,11 @@ export default function AIAssistant({ editor }: AIAssistantProps) {
     }
   };
 
-  // Restore selection when panel is open
-  useEffect(() => {
-    if (isOpen) {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-          restoreSelection();
-        }
-      };
-
-      const handleFocusOut = () => {
-        restoreSelection();
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('focusout', handleFocusOut);
-
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('focusout', handleFocusOut);
-      };
-    }
-  }, [isOpen, editor]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editor || !prompt.trim()) return;
 
-    const selection = selectionRef.current;
+    const selection = getSelectedText() || selectionRef.current;
     if (!selection) {
       toast.error('Please select some text to modify');
       return;
@@ -88,8 +74,6 @@ export default function AIAssistant({ editor }: AIAssistantProps) {
 
     setLoading(true);
     try {
-      restoreSelection(); // Ensure selection is visible before sending request
-
       const response = await api.chat(prompt, [
         {
           type: 'document',
@@ -99,7 +83,6 @@ export default function AIAssistant({ editor }: AIAssistantProps) {
       ]);
 
       if (response.content) {
-        // Replace only the selected text with the AI response
         editor
           .chain()
           .focus()
@@ -143,9 +126,6 @@ export default function AIAssistant({ editor }: AIAssistantProps) {
         <div 
           ref={panelRef}
           className="fixed bottom-20 right-4 w-96 bg-white rounded-lg shadow-xl border border-gray-200"
-          onMouseEnter={restoreSelection}
-          onFocus={restoreSelection}
-          onClick={restoreSelection}
         >
           <div className="p-4">
             <div className="flex justify-between items-center mb-4">
@@ -166,7 +146,6 @@ export default function AIAssistant({ editor }: AIAssistantProps) {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                onFocus={restoreSelection}
                 placeholder="e.g., Make this more formal, Fix grammar errors, Add more detail..."
                 className="w-full h-32 p-2 border border-gray-300 rounded-md mb-2 resize-none"
                 disabled={loading}

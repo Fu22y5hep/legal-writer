@@ -15,6 +15,31 @@ import AIAssistant from '@/components/editor/AIAssistant';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 
+// Custom styles for the editor
+const editorStyles = `
+  .ProseMirror {
+    min-height: 300px;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+  }
+
+  .ProseMirror:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+
+  .ProseMirror ::selection {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+  }
+
+  .ProseMirror ::-moz-selection {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+  }
+`;
+
 interface Document {
   id: string;
   title: string;
@@ -120,6 +145,7 @@ export default function DocumentEditPage() {
 
   return (
     <div className="h-screen flex flex-col">
+      <style>{editorStyles}</style>
       <div className="border-b border-gray-200 bg-white px-4 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
