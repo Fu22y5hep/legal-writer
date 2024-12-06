@@ -263,11 +263,12 @@ export const api = {
 
   // Chat
   chat: async (message: string, contexts: Array<{ type: string; title: string; content: string }>) => {
-    return fetchWithAuth('/chat/', {
+    return await fetchWithAuth('/chat/', {
       method: 'POST',
       body: JSON.stringify({
         message,
-        contexts
+        contexts,
+        model: 'gpt-4-mini'
       }),
     });
   },

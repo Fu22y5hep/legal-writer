@@ -11,6 +11,7 @@ import Heading from '@tiptap/extension-heading';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import MenuBar from '@/components/editor/EditorMenuBar';
+import AIAssistant from '@/components/editor/AIAssistant';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 
@@ -161,6 +162,8 @@ export default function DocumentEditPage() {
           <EditorContent editor={editor} className="prose max-w-none mt-4" />
         </div>
       </div>
+
+      <AIAssistant editor={editor} />
     </div>
   );
 }
