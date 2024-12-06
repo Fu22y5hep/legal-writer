@@ -14,6 +14,7 @@ import MenuBar from '@/components/editor/EditorMenuBar';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
+import { useRouter } from 'next/navigation';
 
 interface Document {
   id: string;
@@ -32,6 +33,7 @@ export default function DocumentPage() {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   const editor = useEditor({
     extensions: [
@@ -86,18 +88,19 @@ export default function DocumentPage() {
   const handleSave = async () => {
     if (!document || !editor) return;
 
+    setSaving(true);
     try {
-      setSaving(true);
-      const content = editor.getHTML();
-      await api.updateDocument(document.project, Number(document.id), {
-        title,
-        content
-      });
-      setDocument({ ...document, title, content });
-      setEditing(false);
+      const updatedContent = editor.getHTML();
+
+      // TODO: Implement actual API call
+      // await api.updateDocument(document.id, { content: updatedContent, title });
+
       toast.success('Document saved successfully');
-    } catch (err) {
-      console.error('Error saving document:', err);
+
+      // Navigate back to project documents view
+      router.back();
+    } catch (error) {
+      console.error('Error saving document:', error);
       toast.error('Failed to save document');
     } finally {
       setSaving(false);

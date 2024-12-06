@@ -14,6 +14,9 @@ interface Document {
   created_at: string;
   updated_at: string;
   project: number;
+  category?: string;
+  tags?: string[];
+  status?: 'draft' | 'review' | 'final';
 }
 
 interface DocumentListProps {
@@ -24,7 +27,16 @@ export default function DocumentList({ projectId }: DocumentListProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState({
+    status: 'all',
+    category: 'all',
+    searchTerm: ''
+  });
   const router = useRouter();
+
+  // Add sorting options
+  const [sortBy, setSortBy] = useState<'title' | 'updated_at' | 'status'>('updated_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     if (!projectId) {
@@ -181,6 +193,31 @@ export default function DocumentList({ projectId }: DocumentListProps) {
     }
   };
 
+  const handleDocumentClick = (doc: Document) => {
+    router.push(`/documents/${doc.id}/edit`);
+  };
+
+  const filteredDocuments = documents
+    .filter(doc => {
+      if (filter.status !== 'all' && doc.status !== filter.status) return false;
+      if (filter.category !== 'all' && doc.category !== filter.category) return false;
+      if (filter.searchTerm && !doc.title.toLowerCase().includes(filter.searchTerm.toLowerCase())) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'title') {
+        return sortOrder === 'asc' 
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title);
+      }
+      if (sortBy === 'updated_at') {
+        return sortOrder === 'asc'
+          ? new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+          : new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      }
+      return 0;
+    });
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -205,69 +242,77 @@ export default function DocumentList({ projectId }: DocumentListProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-medium text-gray-900">Documents</h2>
-        <button
-          onClick={handleCreateDocument}
-          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <FontAwesomeIcon icon={faPlus} className="mr-2 h-4 w-4" />
-          New Document
-        </button>
+      <div className="flex items-center justify-between">
+        <div className="flex space-x-4">
+          <select
+            className="rounded-md border border-gray-300 px-3 py-1"
+            value={filter.status}
+            onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))}
+          >
+            <option value="all">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="review">In Review</option>
+            <option value="final">Final</option>
+          </select>
+          
+          <input
+            type="text"
+            placeholder="Search documents..."
+            className="rounded-md border border-gray-300 px-3 py-1"
+            value={filter.searchTerm}
+            onChange={(e) => setFilter(prev => ({ ...prev, searchTerm: e.target.value }))}
+          />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-500">Sort by:</span>
+          <select
+            className="rounded-md border border-gray-300 px-3 py-1"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'title' | 'updated_at' | 'status')}
+          >
+            <option value="title">Title</option>
+            <option value="updated_at">Last Updated</option>
+            <option value="status">Status</option>
+          </select>
+          <button
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            className="p-1 hover:bg-gray-100 rounded"
+          >
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </button>
+        </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-3">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
-
       <div className="divide-y divide-gray-200 border border-gray-200 rounded-md shadow-sm">
-        {documents.map((document, index) => (
+        {filteredDocuments.map((doc) => (
           <div
-            key={document.id}
-            className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors duration-150 ease-in-out`}
+            key={doc.id}
+            onClick={() => handleDocumentClick(doc)}
+            className="p-4 cursor-pointer hover:bg-gray-50 flex items-center justify-between"
           >
-            <div 
-              className="px-4 py-3 cursor-pointer"
-              onClick={() => router.push(`/documents/${document.id}`)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0">
-                      <FontAwesomeIcon icon={faFile} className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
-                          {document.title}
-                        </h3>
-                        <div className="flex items-center gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteDocument(document.id);
-                            }}
-                            className="p-1 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors duration-150"
-                          >
-                            <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-0.5 flex items-center text-xs text-gray-500">
-                        <span>{new Date(document.created_at).toLocaleDateString()}</span>
-                        <span className="mx-1.5">•</span>
-                        <span>Last modified: {new Date(document.updated_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-center min-w-0">
+              <FontAwesomeIcon icon={faFile} className="h-5 w-5 text-gray-400 mr-3" />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 truncate">
+                  {doc.title}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {new Date(doc.updated_at).toLocaleDateString()}
+                </p>
+                <span className={`
+                  inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                  ${doc.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                    doc.status === 'review' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-green-100 text-green-800'}
+                `}>
+                  {doc.status}
+                </span>
               </div>
             </div>
           </div>
         ))}
-        {documents.length === 0 && (
+        {filteredDocuments.length === 0 && (
           <div className="px-4 py-3 text-sm text-center text-gray-500">
             No documents yet
           </div>
