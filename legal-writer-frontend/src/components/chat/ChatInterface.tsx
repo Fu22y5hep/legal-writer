@@ -263,10 +263,10 @@ export default function ChatInterface() {
             <button
               type="button"
               onClick={() => setIsContextSelectorOpen(true)}
-              className="p-2 text-gray-500 hover:text-gray-700"
+              className="p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-200"
               title="Add Context"
             >
-              <DocumentPlusIcon className="w-6 h-6" />
+              <DocumentPlusIcon className="w-5 h-5 text-indigo-500 hover:text-indigo-600" />
             </button>
             <button
               type="submit"
